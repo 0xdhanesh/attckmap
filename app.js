@@ -777,6 +777,111 @@ const ATTACK_DB = {
   "mitre_ref": "T1579"
 },
 
+// === GCP CLOUD ===
+"GCPRECON-1": {
+  "name": "Project & Asset Enumeration",
+  "description": "Discover projects, IAM policies, enabled APIs, and service accounts.",
+  "test_note": "gcloud projects list; gcloud asset search-all-resources; gcloud services list --available",
+  "category": "1_GCPRECON",
+  "platform": "gcp",
+  "custom": true
+},
+"GCPRECON-2": {
+  "name": "IAM & Service Account Recon",
+  "description": "Enumerate service accounts, keys, and permission grants.",
+  "test_note": "gcloud iam service-accounts list; gcloud iam list-grantable-roles",
+  "category": "1_GCPRECON",
+  "platform": "gcp",
+  "mitre_ref": "T1589"
+},
+
+"GCPSTATIC-1": {
+  "name": "IaC Scanning (Terraform/Deployment Manager)",
+  "description": "Detect misconfigured GCP resources in IaC templates.",
+  "test_note": "tfsec .; checkov -d . --framework terraform; gcloud deployment-manager deployments list",
+  "category": "2_GCPSTATIC",
+  "platform": "gcp",
+  "custom": true
+},
+"GCPSTATIC-2": {
+  "name": "Hardcoded Secrets in Code",
+  "description": "Credentials, keys, tokens in source, logs, or Cloud Build.",
+  "test_note": "gcloud secrets list; trufflehog git; grep -rE 'AIza|GOOGLE|secret' .",
+  "category": "2_GCPSTATIC",
+  "platform": "gcp",
+  "mitre_ref": "T1552.001"
+},
+
+"GCPMISCONFIG-1": {
+  "name": "Bucket & Storage Misconfigurations",
+  "description": "Public GCS buckets, uniform access disabled, ACL leaks.",
+  "test_note": "gsutil ls -r gs://; gsutil iam get gs://bucket; ScoutSuite --provider gcp",
+  "category": "3_GCPMISCONFIG",
+  "platform": "gcp",
+  "mitre_ref": "T1530"
+},
+"GCPMISCONFIG-2": {
+  "name": "Firewall & VPC Misconfigs",
+  "description": "Overly permissive firewall rules or default networks.",
+  "test_note": "gcloud compute firewall-rules list; gcloud compute networks list",
+  "category": "3_GCPMISCONFIG",
+  "platform": "gcp",
+  "mitre_ref": "T1190"
+},
+
+"GCPIDENTITY-1": {
+  "name": "IAM Privilege Escalation",
+  "description": "Over-privileged service accounts, custom roles with dangerous permissions.",
+  "test_note": "gcloud iam roles describe; Prowler -p gcp -c iam",
+  "category": "4_GCPIDENTITY",
+  "platform": "gcp",
+  "mitre_ref": "T1098.003"
+},
+"GCPIDENTITY-2": {
+  "name": "Workload Identity Federation Abuse",
+  "description": "Misconfigured federation allowing external identity escalation.",
+  "test_note": "gcloud iam workload-identity-pools list; check oidc/aws federation bindings",
+  "category": "4_GCPIDENTITY",
+  "platform": "gcp",
+  "custom": true
+},
+
+"GCPSTORAGE-1": {
+  "name": "Sensitive Data in GCS / Secret Manager",
+  "description": "Plaintext secrets or PII in buckets/Secret Manager.",
+  "test_note": "gsutil ls -r gs://; gcloud secrets versions access latest --secret=NAME",
+  "category": "5_GCPSTORAGE",
+  "platform": "gcp",
+  "mitre_ref": "T1555"
+},
+
+"GCPNETWORK-1": {
+  "name": "VPC & Private Service Connect Exposure",
+  "description": "Exposed endpoints or misconfigured Private Google Access.",
+  "test_note": "gcloud compute instances list; gcloud compute networks subnets list",
+  "category": "6_GCPNETWORK",
+  "platform": "gcp",
+  "mitre_ref": "T1190"
+},
+
+"GCPRUNTIME-1": {
+  "name": "Cloud Run / GKE Runtime Misconfigs",
+  "description": "Insecure containers, env vars leaking secrets.",
+  "test_note": "gcloud run services list; kubectl get secrets --all-namespaces",
+  "category": "7_GCPRUNTIME",
+  "platform": "gcp",
+  "custom": true
+},
+
+"GCPPERSIST-1": {
+  "name": "Backdoor via Cloud Functions / Scheduler",
+  "description": "Persistence through scheduled jobs or functions.",
+  "test_note": "gcloud functions list; gcloud scheduler jobs list",
+  "category": "8_GCPPERSISTENCE",
+  "platform": "gcp",
+  "mitre_ref": "T1053.007"
+},
+
 
 
 };
