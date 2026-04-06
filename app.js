@@ -1092,7 +1092,7 @@ const ATTACK_DB = {
   "mitre_ref": "T1053.007"
 },
 
-// === PROFNET — COMPLETE ATTACK_DB BLOCK ===
+// === PROFINET ===
 "PROFINETRECON-1": {
   "name": "Profinet Device Discovery (DCP)",
   "description": "Enumerate Profinet devices via Discovery and Configuration Protocol.",
@@ -1141,6 +1141,57 @@ const ATTACK_DB = {
   "platform": "profinet",
   "mitre_ref": "T1565"
 },
+
+// === ETHERCAT ===
+"ETHERCATRECON-1": {
+  "name": "EtherCAT Slave Discovery",
+  "description": "Enumerate slaves via BRD/BRW datagrams.",
+  "test_note": "ethercat tool or scapy EtherCAT() BRD command",
+  "category": "1_ETHERCATRECON",
+  "platform": "ethercat",
+  "custom": true
+},
+"ETHERCATTRAFFIC-1": {
+  "name": "EtherCAT On-the-Fly Traffic Interception",
+  "description": "Capture and inspect datagrams in ring topology.",
+  "test_note": "Wireshark ethercat filter; passive tap on ring",
+  "category": "2_ETHERCATTRAFFIC",
+  "platform": "ethercat",
+  "mitre_ref": "T1040"
+},
+"ETHERCATREPLAY-1": {
+  "name": "EtherCAT Command Replay Attack",
+  "description": "Replay LRW/FRMW datagrams (no source validation).",
+  "test_note": "Capture → scapy replay; alters actuator states",
+  "category": "3_ETHERCATREPLAY",
+  "platform": "ethercat",
+  "custom": true
+},
+"ETHERCATDOS-1": {
+  "name": "EtherCAT Malformed Datagram DoS/Reboot",
+  "description": "Craft invalid working counter or length → slave crash.",
+  "test_note": "Scapy EtherCAT() with WC=0xFFFF loop; Beckhoff/Dragos observed",
+  "category": "4_ETHERCATDOS",
+  "platform": "ethercat",
+  "custom": true
+},
+"ETHERCATUNAUTH-1": {
+  "name": "EtherCAT Unauthenticated State Machine Control",
+  "description": "Force slave to INIT/PREOP/SAFEOP/OP without auth.",
+  "test_note": "EtherCAT WRREG to AL control register",
+  "category": "5_ETHERCATUNAUTH",
+  "platform": "ethercat",
+  "custom": true
+},
+"ETHERCATUNAUTH-2": {
+  "name": "EtherCAT Process Data Manipulation",
+  "description": "Inject false PDO data in LRW datagrams.",
+  "test_note": "Forge output data bytes in cyclic frame",
+  "category": "5_ETHERCATUNAUTH",
+  "platform": "ethercat",
+  "mitre_ref": "T1565"
+},
+
 
 
 };
