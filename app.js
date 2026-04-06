@@ -1284,6 +1284,48 @@ const ATTACK_DB = {
   "custom": true
 },
 
+// === OPCUA ===
+"OPCUARECON-1": {
+  "name": "OPC UA Endpoint & Certificate Discovery",
+  "description": "Enumerate endpoints and security policies.",
+  "test_note": "uaexpert or opcua-client browse",
+  "category": "1_OPCUARECON",
+  "platform": "opcua",
+  "custom": true
+},
+"OPCUATRAFFIC-1": {
+  "name": "OPC UA Session Interception",
+  "description": "Capture CreateSession / ActivateSession.",
+  "test_note": "Wireshark opcua filter",
+  "category": "2_OPCUATRAFFIC",
+  "platform": "opcua",
+  "mitre_ref": "T1040"
+},
+"OPCUA REPLAY-1": {
+  "name": "OPC UA Replay Attack (Weak SecurityMode)",
+  "description": "Replay signed messages in None/SignOnly mode.",
+  "test_note": "Capture ActivateSession → replay; EU CRA flags weak modes",
+  "category": "3_OPCUAREPLAY",
+  "platform": "opcua",
+  "custom": true
+},
+"OPCUADOS-1": {
+  "name": "OPC UA Malformed Request DoS",
+  "description": "Craft invalid OpenSecureChannel → connection reset/reboot.",
+  "test_note": "Scapy OPC UA with invalid nonce length",
+  "category": "4_OPCUADOS",
+  "platform": "opcua",
+  "custom": true
+},
+"OPCUAUNAUTH-1": {
+  "name": "OPC UA Unauthenticated Node Write",
+  "description": "Write attributes without proper user token.",
+  "test_note": "opcua-client write node (SecurityMode=None)",
+  "category": "5_OPCUAUNAUTH",
+  "platform": "opcua",
+  "custom": true
+}
+
 };
 
 // Derived automatically from ATTACK_DB — do NOT edit this directly.
