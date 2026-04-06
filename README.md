@@ -1,4 +1,4 @@
-# ATT&CK Map for Pentesters
+# ATT&CK Scope Navigator
 
 A 100% static, GitHub Pages-ready web app for tracking MITRE ATT&CK technique coverage during thick-client penetration tests. No backend, no CDN dependencies — all state lives in `localStorage`.
 
@@ -6,142 +6,101 @@ A 100% static, GitHub Pages-ready web app for tracking MITRE ATT&CK technique co
 
 ## Adding Techniques
 
-All technique data lives in two places inside `app.js`:
+`ATTACK_DB` in `app.js` is the **single source of truth**. Add one entry there and it appears in the grid, stats bar, filters, SVG export, and PDF export automatically — no other file needs to change.
 
-- **`ATTACK_DB`** — the technique catalogue (name, description, test notes, metadata)
-- **`TECHNIQUES`** — per-platform lists of technique IDs that appear in the UI
-
-Adding a technique is always a two-step process: add it to `ATTACK_DB`, then reference its ID in `TECHNIQUES`.
-
----
-
-### Step 1 — Add the entry to `ATTACK_DB`
-
-Open `app.js` and find the `ATTACK_DB` object. Add a new key/value pair. The key is the technique ID; the value is an object with the fields below.
+### Entry format
 
 ```js
 "YOUR-ID": {
   name:        "Short display name",         // required
   description: "One-sentence description.",  // required
-  test_note:   "Tool/command hint.",         // required — shown on the card
-  category:    "Category Name",             // optional — groups cards under a header
-  mitre_ref:   "T1574.001",                 // optional — links this to a parent MITRE ID
-  custom:      true                         // optional — marks it as non-MITRE
+  test_note:   "Tool / command hint.",       // required — shown on the card
+  platform:    "windows",                   // required — controls which tab shows this
+  category:    "Category Name",             // optional — groups cards under a section header
+  mitre_ref:   "T1574.001",                 // optional — shown as "↗ Variant of T1574.001"
+  custom:      true                         // optional — shows orange "Custom · Non-MITRE" badge
 }
 ```
 
-#### ID conventions
+### ID conventions
 
-| Type | ID format | When to use |
-|------|-----------|-------------|
-| Standard MITRE technique | `T1574.001`, `T1112` | Exact match to a published MITRE technique |
-| MITRE variant / sub-test | `T1574.001-PDH`, `T1574.001-RED` | A specific pentest scenario under a MITRE technique — set `mitre_ref` to the parent ID |
-| Custom / non-MITRE | `WIN-CUSTOM-001`, `LNX-MEM-001` | No MITRE mapping exists — set `custom: true` |
+| Type | Format | Example |
+|------|--------|---------|
+| Standard MITRE | `T<num>.<sub>` | `T1574.001` |
+| MITRE variant / sub-test | `T<num>.<sub>-TAG` + `mitre_ref` | `T1574.001-PDH` |
+| Custom / non-MITRE | `PLATFORM-CATEGORY-NNN` + `custom: true` | `WIN-MEM-001` |
 
-#### `mitre_ref` vs `custom`
+### `platform` field
 
-- `mitre_ref: "T1574.001"` — the card shows `↗ Variant of T1574.001` and links to the parent technique on attack.mitre.org
-- `custom: true` — the card shows an orange **Custom · Non-MITRE** badge; no external link is generated
-
----
-
-### Step 2 — Add the ID to `TECHNIQUES`
-
-Find the `TECHNIQUES` object and append your new ID to the relevant platform array. **Order matters** — techniques appear in the grid exactly as listed here, grouped by `category`.
+Accepts a string or an array for techniques that apply to multiple platforms:
 
 ```js
-const TECHNIQUES = {
-  windows: [
-    // DLL Attacks
-    "T1574.001", "T1574.001-PDH", "T1574.001-RED", "T1574.001-SUB",
-    "T1574.002", "WIN-DLL-UNSIGNED",
-    "YOUR-NEW-ID",   // <-- append here, inside the right comment group
-    // Persistence
-    ...
-  ],
-  linux: [
-    ...
-    "YOUR-NEW-LINUX-ID"
-  ]
-};
+platform: "windows"                  // single platform
+platform: ["windows", "linux"]       // appears under both tabs
 ```
 
-That's it. Reload the page — the technique appears in the grid with the correct category header.
+### Example — custom non-MITRE technique
+
+```js
+"WIN-MEM-HEAP": {
+  name:        "Heap Inspection",
+  description: "Sensitive data left in process heap after use.",
+  test_note:   "Attach WinDbg; !heap -p -a <addr>; search for creds/tokens",
+  platform:    "windows",
+  category:    "Memory",
+  custom:      true
+},
+```
+
+### Example — MITRE variant
+
+```js
+"T1055.001-EARLYBIRD": {
+  name:        "Early Bird APC Injection",
+  description: "Queue APC to a newly-spawned process before its main thread runs.",
+  test_note:   "CreateProcess (suspended) → QueueUserAPC → ResumeThread",
+  platform:    "windows",
+  category:    "Code Injection",
+  mitre_ref:   "T1055.001"
+},
+```
 
 ---
 
 ## Adding a New Platform
 
-To add an entirely new platform (e.g. mobile, web, network):
-
-**1.** Add all its technique entries to `ATTACK_DB` (following the same conventions above).
-
-**2.** Add a new key to `TECHNIQUES`:
+Add entries to `ATTACK_DB` with `platform: "yourplatform"`. That's it. The dropdown, localStorage bucket, stats bar, progress bar, filter pills, SVG export, and PDF export all provision themselves automatically.
 
 ```js
-const TECHNIQUES = {
-  windows: [ ... ],
-  linux:   [ ... ],
-  mobile:  [           // <-- new platform
-    "MOB-CUSTOM-001",
-    "T1411",
-    ...
-  ]
-};
-```
-
-The platform dropdown, localStorage bucket, stats bar, progress bar, filter pills, SVG export, and PDF export all provision themselves automatically — no other changes needed.
-
----
-
-## Complete Examples
-
-**Adding a Windows memory-inspection test case with no MITRE mapping:**
-
-```js
-// In ATTACK_DB — add inside the appropriate comment section:
-"WIN-MEM-HEAP": {
-  name:        "Heap Inspection",
-  description: "Sensitive data left in process heap after use.",
-  test_note:   "Attach WinDbg; !heap -p -a <addr>; search for creds/tokens",
-  category:    "Memory",
+"MOB-CUSTOM-001": {
+  name:        "Insecure Data Storage",
+  description: "App stores sensitive data in plaintext on device storage.",
+  test_note:   "Pull /data/data/<pkg>/shared_prefs; grep for credentials",
+  platform:    "mobile",
+  category:    "Data Exposure",
   custom:      true
 },
-
-// In TECHNIQUES — append to the windows array:
-windows: [
-  ...existing IDs...,
-  "WIN-MEM-HEAP"
-]
 ```
 
-**Adding a variant of an existing MITRE technique:**
-
-```js
-// In ATTACK_DB:
-"T1055.001-EARLYBIRD": {
-  name:        "Early Bird APC Injection",
-  description: "Queue APC to a newly-spawned process before its main thread runs.",
-  test_note:   "CreateProcess (suspended) → QueueUserAPC → ResumeThread",
-  category:    "Code Injection",
-  mitre_ref:   "T1055.001"
-},
-
-// In TECHNIQUES — windows array:
-"T1055.001", "T1055.001-EARLYBIRD",
-```
+Reload the page — "Mobile" appears in the platform dropdown.
 
 ---
 
-## File Reference
+## Display order
+
+Techniques appear in the grid in the same order they are defined in `ATTACK_DB`. To reorder, move entries up or down in the object.
+
+---
+
+## File reference
 
 | File | Purpose |
 |------|---------|
-| `app.js` | All technique data (`ATTACK_DB`, `TECHNIQUES`) and application logic |
+| `app.js` | All technique data (`ATTACK_DB`) and application logic |
 | `index.html` | App shell — no technique data here |
 | `styles.css` | Visual theme — edit only for styling changes |
 | `data/attack.json` | Legacy reference only — not loaded by the app |
 
 ---
 
-*🚀 Vibed by **0xdhanesh** *
+*Vibed by **0xdhanesh** & **MadhuMJ01***

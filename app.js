@@ -1,22 +1,27 @@
 // app.js — Scope-Aware ATT&CK Navigator
 //
-// EXTENDING THIS TEMPLATE
-// ──────────────────────────────────────────────────────────────────────────
-// Each entry in ATTACK_DB accepts these fields:
+// ── HOW TO ADD TECHNIQUES ──────────────────────────────────────────────────
+// ATTACK_DB is the single source of truth. Add one entry here and it appears
+// in the grid, stats bar, filters, SVG export, and PDF export automatically.
+//
+// Required fields:
 //   name        {string}  Display name
-//   description {string}  Short description
-//   test_note   {string}  Pentest procedure / tool hint
-//   category    {string}  Optional grouping label (e.g. "DLL Attacks", "Recon")
-//   mitre_ref   {string}  Optional — parent MITRE ID for sub-techniques/variants
-//   custom      {bool}    true = not in MITRE ATT&CK at all
+//   description {string}  One-sentence description
+//   test_note   {string}  Tool / command hint shown on the card
+//   platform    {string|string[]}  e.g. "windows", "linux", or ["windows","linux"]
+//
+// Optional fields:
+//   category    {string}  Groups cards under a section header (e.g. "DLL Attacks")
+//   mitre_ref   {string}  Parent MITRE ID — shown as "↗ Variant of T1574.001"
+//   custom      {bool}    true = no MITRE mapping; shows orange "Custom · Non-MITRE" badge
 //
 // ID conventions:
-//   Standard MITRE  →  T1574.001, T1112  (links auto-generated)
-//   MITRE variant   →  T1574.001-PDH     (set mitre_ref to link to parent)
-//   Custom/Non-MITRE→  WIN-CUSTOM-001    (set custom:true, no MITRE link)
+//   Standard MITRE  →  T1574.001, T1112   (MITRE link auto-generated)
+//   MITRE variant   →  T1574.001-PDH      (set mitre_ref to parent ID)
+//   Custom/Non-MITRE→  WIN-CUSTOM-001     (set custom: true)
 //
-// To add a new platform: add its techniques to TECHNIQUES below — everything
-// else (dropdown, storage, exports, filters, stats) auto-provisions itself.
+// To add a new platform: add entries with platform: "yourplatform" — the
+// dropdown, storage bucket, and exports all provision themselves automatically.
 // ──────────────────────────────────────────────────────────────────────────
 
 const ATTACK_DB = {
@@ -26,41 +31,47 @@ const ATTACK_DB = {
     name: "DLL Search Order Hijacking",
     description: "Adversaries may hijack DLL search order to load malicious DLLs.",
     test_note: "ProcMon filter: NAME NOT FOUND on .dll in app dir; drop payload",
-    category: "DLL Attacks"
+    category: "DLL Attacks",
+    platform: "windows"
   },
   "T1574.001-PDH": {
     name: "Phantom DLL Hijacking",
     description: "App references a DLL that doesn't exist; attacker drops it into a searched path.",
     test_note: "ProcMon: filter Result=NAME NOT FOUND + Path ends in .dll; plant payload DLL",
     category: "DLL Attacks",
-    mitre_ref: "T1574.001"
+    mitre_ref: "T1574.001",
+    platform: "windows"
   },
   "T1574.001-RED": {
     name: "DLL Redirection",
     description: "Redirect DLL resolution via .manifest file or DllRedirection registry key.",
     test_note: "Create <app>.exe.manifest with redirect entry; verify via ProcMon load path",
     category: "DLL Attacks",
-    mitre_ref: "T1574.001"
+    mitre_ref: "T1574.001",
+    platform: "windows"
   },
   "T1574.001-SUB": {
     name: "DLL Substitution",
     description: "Replace a legitimately-loaded DLL in a user-writable directory with a malicious proxy.",
     test_note: "Identify DLLs loaded from writable dirs (icacls); overwrite with proxy DLL + original export forwarding",
     category: "DLL Attacks",
-    mitre_ref: "T1574.001"
+    mitre_ref: "T1574.001",
+    platform: "windows"
   },
   "T1574.002": {
     name: "DLL Side-Loading",
     description: "Load malicious DLL by placing it alongside a legitimate signed EXE that imports it.",
     test_note: "Find EXEs with missing imports (Dependencies tool); drop crafted DLL beside EXE",
-    category: "DLL Attacks"
+    category: "DLL Attacks",
+    platform: "windows"
   },
   "WIN-DLL-UNSIGNED": {
     name: "Unsigned DLL Loading",
     description: "Application loads DLLs without Authenticode verification, allowing arbitrary DLL injection.",
     test_note: "Sigcheck -e on process DLLs; ListDLLs / Sysmon Event 7 for unsigned modules",
     category: "DLL Attacks",
-    custom: true
+    custom: true,
+    platform: "windows"
   },
 
   // ── Persistence (Windows) ────────────────────────────────────────────────
@@ -68,25 +79,29 @@ const ATTACK_DB = {
     name: "Registry Run Keys",
     description: "Persistence via HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run.",
     test_note: "Write to Run key + test reboot",
-    category: "Persistence"
+    category: "Persistence",
+    platform: "windows"
   },
   "T1543.003": {
     name: "Windows Service",
     description: "Create/modify service for persistence/escalation.",
     test_note: "sc create / sc config + weak permissions check",
-    category: "Persistence"
+    category: "Persistence",
+    platform: "windows"
   },
   "T1053.005": {
     name: "Scheduled Task",
     description: "Persistence via schtasks.",
     test_note: "schtasks /create + test trigger",
-    category: "Persistence"
+    category: "Persistence",
+    platform: "windows"
   },
   "T1547.004": {
     name: "Winlogon Helper DLL",
     description: "Winlogon helper DLL hijack.",
     test_note: "Set HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
-    category: "Persistence"
+    category: "Persistence",
+    platform: "windows"
   },
 
   // ── Privilege Escalation (Windows) ──────────────────────────────────────
@@ -94,7 +109,8 @@ const ATTACK_DB = {
     name: "Bypass UAC",
     description: "UAC bypass techniques.",
     test_note: "fodhelper.exe / eventvwr.exe classic bypass",
-    category: "Privilege Escalation"
+    category: "Privilege Escalation",
+    platform: "windows"
   },
 
   // ── Credential Access (Windows) ─────────────────────────────────────────
@@ -102,7 +118,8 @@ const ATTACK_DB = {
     name: "LSASS Memory Dump",
     description: "Credential dumping from LSASS.",
     test_note: "Mimikatz / procdump lsass.exe",
-    category: "Credential Access"
+    category: "Credential Access",
+    platform: "windows"
   },
 
   // ── Code Injection (Windows) ─────────────────────────────────────────────
@@ -110,7 +127,8 @@ const ATTACK_DB = {
     name: "Process Injection (DLL)",
     description: "Inject DLL into legitimate process.",
     test_note: "Process Hacker + classic CreateRemoteThread",
-    category: "Code Injection"
+    category: "Code Injection",
+    platform: "windows"
   },
 
   // ── Defense Evasion / Registry (Windows) ────────────────────────────────
@@ -118,67 +136,52 @@ const ATTACK_DB = {
     name: "Modify Registry",
     description: "Registry modifications for defense evasion/persistence.",
     test_note: "Regedit + common keys (AppInit_DLLs, etc.)",
-    category: "Defense Evasion"
+    category: "Defense Evasion",
+    platform: "windows"
   },
   "T1559.001": {
     name: "COM Hijacking",
     description: "Component Object Model hijacking.",
     test_note: "CLSID registry hijack",
-    category: "Defense Evasion"
+    category: "Defense Evasion",
+    platform: "windows"
   },
   "T1574.011": {
     name: "Hijack Execution Flow: Services",
     description: "Service image path hijack.",
     test_note: "Modify ImagePath in registry",
-    category: "Defense Evasion"
+    category: "Defense Evasion",
+    platform: "windows"
   },
 
   // ── Linux ────────────────────────────────────────────────────────────────
-  "T1574.006": { name: "LD_PRELOAD", description: "Hijack shared library loading.", test_note: "LD_PRELOAD=./evil.so ./app", category: "DLL/SO Attacks" },
-  "T1574.007": { name: "PATH Interception", description: "Hijack via PATH env var.", test_note: "Prepend malicious dir to $PATH", category: "DLL/SO Attacks" },
-  "T1548.001": { name: "Setuid/Setgid", description: "Abuse SUID binaries for escalation.", test_note: "find / -perm -4000 + test writeable SUID", category: "Privilege Escalation" },
-  "T1053.003": { name: "Cron", description: "Persistence via cron jobs.", test_note: "crontab -e + root cron", category: "Persistence" },
-  "T1547.006": { name: "rc.local", description: "Boot autostart scripts.", test_note: "/etc/rc.local", category: "Persistence" },
-  "T1546.004": { name: "Unix Shell Config Modification", description: ".bashrc / .profile hijack", test_note: "Append payload to ~/.bashrc", category: "Persistence" },
-  "T1543.002": { name: "Systemd Service", description: "Create systemd unit for persistence.", test_note: "systemctl --user enable malicious.service", category: "Persistence" },
-  "T1036.004": { name: "Masquerade Task or Service", description: "Rename binary to look legit", test_note: "Rename to mimic legitimate binary", category: "Defense Evasion" },
-  "T1548.003": { name: "sudoers Modification", description: "Modify sudoers for escalation", test_note: "Edit /etc/sudoers NOPASSWD entry", category: "Privilege Escalation" },
-  "T1055.008": { name: "Process Injection: ptrace", description: "ptrace-based injection on Linux", test_note: "Attach ptrace to running process + shellcode", category: "Code Injection" },
-  "T1556.003": { name: "PAM Backdoor", description: "Modify PAM config to create auth backdoor.", test_note: "Edit /etc/pam.d/common-auth + test login", category: "Credential Access" },
-  "T1574.010": { name: "Service Binary Hijack", description: "Service binary hijack on Linux via weak file permissions.", test_note: "Replace service binary with malicious one", category: "DLL/SO Attacks" }
+  "T1574.006": { name: "LD_PRELOAD", description: "Hijack shared library loading.", test_note: "LD_PRELOAD=./evil.so ./app", category: "DLL/SO Attacks", platform: "linux" },
+  "T1574.007": { name: "PATH Interception", description: "Hijack via PATH env var.", test_note: "Prepend malicious dir to $PATH", category: "DLL/SO Attacks", platform: "linux" },
+  "T1548.001": { name: "Setuid/Setgid", description: "Abuse SUID binaries for escalation.", test_note: "find / -perm -4000 + test writeable SUID", category: "Privilege Escalation", platform: "linux" },
+  "T1053.003": { name: "Cron", description: "Persistence via cron jobs.", test_note: "crontab -e + root cron", category: "Persistence", platform: "linux" },
+  "T1547.006": { name: "rc.local", description: "Boot autostart scripts.", test_note: "/etc/rc.local", category: "Persistence", platform: "linux" },
+  "T1546.004": { name: "Unix Shell Config Modification", description: ".bashrc / .profile hijack", test_note: "Append payload to ~/.bashrc", category: "Persistence", platform: "linux" },
+  "T1543.002": { name: "Systemd Service", description: "Create systemd unit for persistence.", test_note: "systemctl --user enable malicious.service", category: "Persistence", platform: "linux" },
+  "T1036.004": { name: "Masquerade Task or Service", description: "Rename binary to look legit", test_note: "Rename to mimic legitimate binary", category: "Defense Evasion", platform: "linux" },
+  "T1548.003": { name: "sudoers Modification", description: "Modify sudoers for escalation", test_note: "Edit /etc/sudoers NOPASSWD entry", category: "Privilege Escalation", platform: "linux" },
+  "T1055.008": { name: "Process Injection: ptrace", description: "ptrace-based injection on Linux", test_note: "Attach ptrace to running process + shellcode", category: "Code Injection", platform: "linux" },
+  "T1556.003": { name: "PAM Backdoor", description: "Modify PAM config to create auth backdoor.", test_note: "Edit /etc/pam.d/common-auth + test login", category: "Credential Access", platform: "linux" },
+  "T1574.010": { name: "Service Binary Hijack", description: "Service binary hijack on Linux via weak file permissions.", test_note: "Replace service binary with malicious one", category: "DLL/SO Attacks", platform: "linux" }
 };
 
-const TECHNIQUES = {
-  // ── Windows thick-client ─────────────────────────────────────────────────
-  // To add a new test case: add it to ATTACK_DB above then append the ID here.
-  windows: [
-    // DLL Attacks
-    "T1574.001", "T1574.001-PDH", "T1574.001-RED", "T1574.001-SUB",
-    "T1574.002", "WIN-DLL-UNSIGNED",
-    // Persistence
-    "T1547.001", "T1543.003", "T1053.005", "T1547.004",
-    // Privilege Escalation
-    "T1548.002",
-    // Credential Access
-    "T1003.001",
-    // Code Injection
-    "T1055.001",
-    // Defense Evasion / Registry
-    "T1112", "T1559.001", "T1574.011"
-  ],
-
-  // ── Linux thick-client ───────────────────────────────────────────────────
-  linux: [
-    "T1574.006","T1574.007","T1548.001","T1053.003","T1547.006",
-    "T1546.004","T1543.002","T1036.004","T1548.003","T1055.008",
-    "T1556.003","T1574.010"
-  ]
-
-  // ── To add a new platform, simply add a new key here: ───────────────────
-  // mobile: ["MOB-CUSTOM-001", "T1411", ...],
-  // web:    ["WEB-CUSTOM-001", "T1190", ...],
-  // ics:    ["ICS-CUSTOM-001", "T0817", ...],
-};
+// Derived automatically from ATTACK_DB — do NOT edit this directly.
+// To add/remove a technique: edit ATTACK_DB above.
+// Display order follows ATTACK_DB insertion order.
+const TECHNIQUES = (() => {
+  const map = {};
+  Object.entries(ATTACK_DB).forEach(([id, entry]) => {
+    const platforms = Array.isArray(entry.platform) ? entry.platform : [entry.platform];
+    platforms.forEach(p => {
+      if (p) { if (!map[p]) map[p] = []; map[p].push(id); }
+    });
+  });
+  return map;
+})();
 
 let currentPlatform = 'windows';
 let currentFilter = 'all';
@@ -195,7 +198,7 @@ const STATUS_LABELS = {
 const COVERAGE_KEY     = 'scopeAwareCoverage';
 const PROJECT_NAME_KEY = 'attck_project_name';
 const PENTESTER_KEY    = 'attck_pentester_name';
-const CREDIT           = '🚀 Vibed by 0xdhanesh';
+const CREDIT           = 'Vibed by 0xdhanesh & MadhuMJ01';
 
 // ── Data model ─────────────────────────────────────────────────────────────
 // Each entry is { status, notes }. Old string-only entries are migrated on read.
@@ -217,14 +220,13 @@ function loadCoverage() {
     const saved = localStorage.getItem(COVERAGE_KEY);
     if (saved) coverage = JSON.parse(saved);
   } catch (_) {}
-  // Ensure every platform defined in TECHNIQUES has a coverage bucket.
-  // This means adding a new platform to TECHNIQUES is the only step needed.
+  // Ensure every platform in ATTACK_DB has a coverage bucket.
   Object.keys(TECHNIQUES).forEach(p => {
     if (!coverage[p]) coverage[p] = {};
   });
 }
 
-// ── Platform select (populated from TECHNIQUES — add new platforms there) ──
+// ── Platform select (auto-populated from unique platform values in ATTACK_DB) ──
 
 function populatePlatformSelect() {
   const select = document.getElementById('platform-select');
