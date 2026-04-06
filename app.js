@@ -1368,6 +1368,48 @@ const ATTACK_DB = {
   "custom": true
 },
 
+// === MQTT ===
+"MQTTRECON-1": {
+  "name": "MQTT Broker & Topic Enumeration",
+  "description": "Discover brokers and subscribed topics.",
+  "test_note": "mqtt-cli or nmap --script mqtt-subscribe",
+  "category": "1_MQTTRECON",
+  "platform": "mqtt",
+  "custom": true
+},
+"MQTTTRAFFIC-1": {
+  "name": "MQTT Traffic Interception",
+  "description": "Capture PUBLISH / SUBSCRIBE without TLS.",
+  "test_note": "Wireshark mqtt filter",
+  "category": "2_MQTTTRAFFIC",
+  "platform": "mqtt",
+  "mitre_ref": "T1040"
+},
+"MQTTREPLAY-1": {
+  "name": "MQTT Replay Attack",
+  "description": "Replay PUBLISH messages (no nonce in QoS 0/1).",
+  "test_note": "Capture → mosquitto_pub replay",
+  "category": "3_MQTTREPLAY",
+  "platform": "mqtt",
+  "custom": true
+},
+"MQTTDOS-1": {
+  "name": "MQTT CONNECT Flood / Malformed DoS",
+  "description": "Flood with invalid CONNECT packets → broker crash.",
+  "test_note": "Scapy MQTT() with malformed flags",
+  "category": "4_MQTT DOS",
+  "platform": "mqtt",
+  "custom": true
+},
+"MQTTUNAUTH-1": {
+  "name": "MQTT Anonymous PUBLISH / SUBSCRIBE",
+  "description": "Publish/subscribe without username/password.",
+  "test_note": "mosquitto_pub -t topic -m payload (no auth)",
+  "category": "5_MQTTUNAUTH",
+  "platform": "mqtt",
+  "custom": true
+},
+
 };
 
 // Derived automatically from ATTACK_DB — do NOT edit this directly.
