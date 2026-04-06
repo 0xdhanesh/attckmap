@@ -26,133 +26,273 @@
 
 const ATTACK_DB = {
 
-  // ── DLL Attacks (Windows) ────────────────────────────────────────────────
-  "T1574.001": {
-    name: "DLL Search Order Hijacking",
-    description: "Adversaries may hijack DLL search order to load malicious DLLs.",
-    test_note: "ProcMon filter: NAME NOT FOUND on .dll in app dir; drop payload",
-    category: "DLL Attacks",
-    platform: "windows"
-  },
-  "T1574.001-PDH": {
-    name: "Phantom DLL Hijacking",
-    description: "App references a DLL that doesn't exist; attacker drops it into a searched path.",
-    test_note: "ProcMon: filter Result=NAME NOT FOUND + Path ends in .dll; plant payload DLL",
-    category: "DLL Attacks",
-    mitre_ref: "T1574.001",
-    platform: "windows"
-  },
-  "T1574.001-RED": {
-    name: "DLL Redirection",
-    description: "Redirect DLL resolution via .manifest file or DllRedirection registry key.",
-    test_note: "Create <app>.exe.manifest with redirect entry; verify via ProcMon load path",
-    category: "DLL Attacks",
-    mitre_ref: "T1574.001",
-    platform: "windows"
-  },
-  "T1574.001-SUB": {
-    name: "DLL Substitution",
-    description: "Replace a legitimately-loaded DLL in a user-writable directory with a malicious proxy.",
-    test_note: "Identify DLLs loaded from writable dirs (icacls); overwrite with proxy DLL + original export forwarding",
-    category: "DLL Attacks",
-    mitre_ref: "T1574.001",
-    platform: "windows"
-  },
-  "T1574.002": {
-    name: "DLL Side-Loading",
-    description: "Load malicious DLL by placing it alongside a legitimate signed EXE that imports it.",
-    test_note: "Find EXEs with missing imports (Dependencies tool); drop crafted DLL beside EXE",
-    category: "DLL Attacks",
-    platform: "windows"
-  },
-  "WIN-DLL-UNSIGNED": {
-    name: "Unsigned DLL Loading",
-    description: "Application loads DLLs without Authenticode verification, allowing arbitrary DLL injection.",
-    test_note: "Sigcheck -e on process DLLs; ListDLLs / Sysmon Event 7 for unsigned modules",
-    category: "DLL Attacks",
-    custom: true,
-    platform: "windows"
-  },
+  // === WINDOWS THICK CLIENT — COMPLETE ATTACK_DB BLOCK (replace existing windows entries) ===
+"RECON-1": {
+  "name": "Architecture & Tech Stack Discovery",
+  "description": "Identify if the application is .NET, Java, C++, Electron, or Delphi.",
+  "test_note": "Use 'Detect It Easy' or 'CFF Explorer' to check compiler and linker info.",
+  "category": "1_RECON",
+  "platform": "windows",
+  "custom": true
+},
+"RECON-2": {
+  "name": "Binary Protections Check",
+  "description": "Check for exploit mitigation features like ASLR, DEP, SafeSEH, and CFG.",
+  "test_note": "Run 'PESecurity' or 'WinCheck' against the main .exe and loaded .dlls.",
+  "category": "1_RECON",
+  "mitre_ref": "CWE-693",
+  "custom": true,
+  "platform": "windows"
+},
+"RECON-3": {
+  "name": "Endpoint & API Discovery",
+  "description": "Identify hardcoded URLs, IP addresses, and API endpoints for backend communication.",
+  "test_note": "Use 'Strings' or 'HTTPAnalyze' to extract URL patterns from the binary.",
+  "category": "1_RECON",
+  "mitre_ref": "T1590",
+  "platform": "windows"
+},
 
-  // ── Persistence (Windows) ────────────────────────────────────────────────
-  "T1547.001": {
-    name: "Registry Run Keys",
-    description: "Persistence via HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run.",
-    test_note: "Write to Run key + test reboot",
-    category: "Persistence",
-    platform: "windows"
-  },
-  "T1543.003": {
-    name: "Windows Service",
-    description: "Create/modify service for persistence/escalation.",
-    test_note: "sc create / sc config + weak permissions check",
-    category: "Persistence",
-    platform: "windows"
-  },
-  "T1053.005": {
-    name: "Scheduled Task",
-    description: "Persistence via schtasks.",
-    test_note: "schtasks /create + test trigger",
-    category: "Persistence",
-    platform: "windows"
-  },
-  "T1547.004": {
-    name: "Winlogon Helper DLL",
-    description: "Winlogon helper DLL hijack.",
-    test_note: "Set HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
-    category: "Persistence",
-    platform: "windows"
-  },
+"STATIC-1": {
+  "name": "Hardcoded Secrets & Strings",
+  "description": "Search for credentials, API keys, or hardcoded IP addresses in the binary.",
+  "test_note": "Use 'strings.exe' or 'floss' for obfuscated strings; search for 'pwd', 'conn', 'key'.",
+  "category": "2_STATIC",
+  "mitre_ref": "T1552.001",
+  "platform": "windows"
+},
+"STATIC-2": {
+  "name": "Decompilation & Logic Review",
+  "description": "Decompile the binary to understand business logic and identify hidden features.",
+  "test_note": "Use 'dnSpy' for .NET, 'JD-GUI' for Java, or 'Ghidra' for native C++ binaries.",
+  "category": "2_STATIC",
+  "mitre_ref": "CWE-327",
+  "custom": true,
+  "platform": "windows"
+},
+"STATIC-3": {
+  "name": "Weak Binary Permissions",
+  "description": "Verify if the application installation directory has weak ACLs allowing modification.",
+  "test_note": "icacls \"C:\\Program Files\\App\"; look for (M) or (F) for Users/Authenticated Users.",
+  "category": "2_STATIC",
+  "mitre_ref": "T1544",
+  "platform": "windows"
+},
+"STATIC-4": {
+  "name": "Config File Analysis",
+  "description": "Audit .config, .xml, and .ini files for sensitive cleartext data.",
+  "test_note": "Search AppDir and %AppData% for connection strings or developer notes.",
+  "category": "2_STATIC",
+  "mitre_ref": "T1552.006",
+  "platform": "windows"
+},
 
-  // ── Privilege Escalation (Windows) ──────────────────────────────────────
-  "T1548.002": {
-    name: "Bypass UAC",
-    description: "UAC bypass techniques.",
-    test_note: "fodhelper.exe / eventvwr.exe classic bypass",
-    category: "Privilege Escalation",
-    platform: "windows"
-  },
+"TRAFFIC-1": {
+  "name": "Intercept HTTP/HTTPS Traffic",
+  "description": "Capture and analyze web-based API calls made by the thick client.",
+  "test_note": "Configure Proxy in app or use 'Burp Suite' with 'Echo Mirage' for non-proxy apps.",
+  "category": "3_TRAFFIC",
+  "mitre_ref": "T1048",
+  "platform": "windows"
+},
+"TRAFFIC-2": {
+  "name": "Broken Cryptography (TLS/SSL)",
+  "description": "Check for weak TLS versions, expired certificates, or lack of certificate pinning.",
+  "test_note": "Attempt MiTM with Burp; check if app accepts self-signed certs.",
+  "category": "3_TRAFFIC",
+  "mitre_ref": "CWE-295",
+  "custom": true,
+  "platform": "windows"
+},
+"TRAFFIC-3": {
+  "name": "Insecure Communication (Cleartext)",
+  "description": "Identify sensitive data transmitted over unencrypted protocols (TCP/UDP).",
+  "test_note": "Run 'Wireshark' while performing login/actions; search for cleartext credentials.",
+  "category": "3_TRAFFIC",
+  "mitre_ref": "T1040",
+  "platform": "windows"
+},
 
-  // ── Credential Access (Windows) ─────────────────────────────────────────
-  "T1003.001": {
-    name: "LSASS Memory Dump",
-    description: "Credential dumping from LSASS.",
-    test_note: "Mimikatz / procdump lsass.exe",
-    category: "Credential Access",
-    platform: "windows"
-  },
+// 4_CSTest — all DLL variants + IPC (exactly as on GitHub + your requested Name Impersonation)
+"T1574.001": {
+  "name": "DLL Search Order Hijacking",
+  "description": "Adversaries may hijack DLL search order to load malicious DLLs.",
+  "test_note": "ProcMon filter: NAME NOT FOUND on .dll in app dir; drop payload",
+  "category": "4_CSTest",
+  "platform": "windows"
+},
+"T1574.001-PDH": {
+  "name": "Phantom DLL Hijacking",
+  "description": "App references a DLL that doesn't exist; attacker drops it into a searched path.",
+  "test_note": "ProcMon: filter Result=NAME NOT FOUND + Path ends in .dll; plant payload DLL",
+  "category": "4_CSTest",
+  "mitre_ref": "T1574.001",
+  "platform": "windows"
+},
+"T1574.001-RED": {
+  "name": "DLL Redirection",
+  "description": "Redirect DLL resolution via .manifest file or DllRedirection registry key.",
+  "test_note": "Create <app>.exe.manifest with redirect entry; verify via ProcMon load path",
+  "category": "4_CSTest",
+  "mitre_ref": "T1574.001",
+  "platform": "windows"
+},
+"T1574.001-SUB": {
+  "name": "DLL Substitution",
+  "description": "Replace a legitimately-loaded DLL in a user-writable directory with a malicious proxy.",
+  "test_note": "Identify DLLs loaded from writable dirs (icacls); overwrite with proxy DLL",
+  "category": "4_CSTest",
+  "mitre_ref": "T1574.001",
+  "platform": "windows"
+},
+"T1574.002": {
+  "name": "DLL Side-Loading",
+  "description": "Load malicious DLL by placing it alongside a legitimate signed EXE that imports it.",
+  "test_note": "Find EXEs with missing imports (Dependencies tool); drop crafted DLL beside EXE",
+  "category": "4_CSTest",
+  "platform": "windows"
+},
+"WIN-DLL-UNSIGNED": {
+  "name": "Unsigned DLL Loading",
+  "description": "Application loads DLLs without Authenticode verification.",
+  "test_note": "Sigcheck -e on process DLLs; Sysmon Event 7 for unsigned modules",
+  "category": "4_CSTest",
+  "custom": true,
+  "platform": "windows"
+},
+"CSTEST-1": {
+  "name": "Named Pipe Impersonation",
+  "description": "Insecure IPC via Named Pipes (Name Impersonation).",
+  "test_note": "Use 'PipeList' or 'IOREACH' to find pipes; check permissions with AccessEnum.",
+  "category": "4_CSTest",
+  "mitre_ref": "T1559",
+  "platform": "windows"
+},
+"T1055.001": {
+  "name": "Process Injection (DLL)",
+  "description": "Inject DLL into legitimate process via CreateRemoteThread.",
+  "test_note": "Process Hacker + classic CreateRemoteThread",
+  "category": "4_CSTest",
+  "platform": "windows"
+},
 
-  // ── Code Injection (Windows) ─────────────────────────────────────────────
-  "T1055.001": {
-    name: "Process Injection (DLL)",
-    description: "Inject DLL into legitimate process.",
-    test_note: "Process Hacker + classic CreateRemoteThread",
-    category: "Code Injection",
-    platform: "windows"
-  },
+// 5_BLIssue — already on GitHub + your requested Client-Side Trust & Parameter Tampering
+"BLISSUE-1": {
+  "name": "GUI Element Manipulation",
+  "description": "Enable disabled buttons, hidden tabs, or unmask password fields in the UI.",
+  "test_note": "Use 'WinSpy++' or 'Window Detective' to change object properties (Enable/Visible).",
+  "category": "5_BLIssue",
+  "custom": true,
+  "platform": "windows"
+},
+"BLISSUE-2": {
+  "name": "Client-Side Trust Issues",
+  "description": "Check if critical logic (authorization, price calc) is performed solely on client side.",
+  "test_note": "Modify local logic via dnSpy/Patching and see if backend accepts forged state.",
+  "category": "5_BLIssue",
+  "mitre_ref": "CWE-602",
+  "custom": true,
+  "platform": "windows"
+},
+"BLISSUE-3": {
+  "name": "Parameter Tampering (Memory / Config)",
+  "description": "Modify values in memory or local files to bypass business rules.",
+  "test_note": "Use 'Cheat Engine' to find and modify local variables (Balance, RoleID) in RAM.",
+  "category": "5_BLIssue",
+  "mitre_ref": "CWE-20",
+  "custom": true,
+  "platform": "windows"
+},
 
-  // ── Defense Evasion / Registry (Windows) ────────────────────────────────
-  "T1112": {
-    name: "Modify Registry",
-    description: "Registry modifications for defense evasion/persistence.",
-    test_note: "Regedit + common keys (AppInit_DLLs, etc.)",
-    category: "Defense Evasion",
-    platform: "windows"
-  },
-  "T1559.001": {
-    name: "COM Hijacking",
-    description: "Component Object Model hijacking.",
-    test_note: "CLSID registry hijack",
-    category: "Defense Evasion",
-    platform: "windows"
-  },
-  "T1574.011": {
-    name: "Hijack Execution Flow: Services",
-    description: "Service image path hijack.",
-    test_note: "Modify ImagePath in registry",
-    category: "Defense Evasion",
-    platform: "windows"
-  },
+// 6_MEMORY — Sensitive Data in Memory (your flagged missing item)
+"MEMORY-1": {
+  "name": "Sensitive Data in Memory",
+  "description": "Passwords, tokens, PII stored in cleartext within the application's RAM.",
+  "test_note": "procdump -ma <PID> dump.dmp && strings dump.dmp | findstr -i pass; WinDbg !heap",
+  "category": "6_MEMORY",
+  "mitre_ref": "T1003",
+  "platform": "windows"
+},
+"MEMORY-2": {
+  "name": "Heap Inspection Post-Authentication",
+  "description": "Sensitive data remaining in heap/stack after login or crypto ops.",
+  "test_note": "x64dbg/x32dbg + Search Pattern; Frida on .NET thick clients",
+  "category": "6_MEMORY",
+  "custom": true,
+  "platform": "windows"
+},
+
+// 7_REGISTRY + remaining high-impact vectors
+"REG-1": {
+  "name": "Registry Configuration Tampering & Enumeration",
+  "description": "Abuse weak ACLs or insecure storage in HKCU/HKLM application-specific keys.",
+  "test_note": "reg query \"HKCU\\Software\\<App>\" /s; icacls on reg keys; ProcMon RegSetValue",
+  "category": "7_REGISTRY",
+  "custom": true,
+  "platform": "windows"
+},
+"REG-2": {
+  "name": "Autoruns & Persistence via Registry",
+  "description": "App-specific Run keys, Shell extensions, COM objects.",
+  "test_note": "Autoruns.exe filtered by app; HKLM\\...\\Run keys",
+  "category": "7_REGISTRY",
+  "mitre_ref": "T1547.001",
+  "platform": "windows"
+},
+
+"STORAGE-1": {
+  "name": "Insecure Local Storage (Files / DBs)",
+  "description": "Plaintext or weakly protected data in %AppData%, SQLite/JSON/XML files.",
+  "test_note": "grep -i pass *.db *.json *.xml in install dir; DB Browser for SQLite",
+  "category": "8_STORAGE",
+  "custom": true,
+  "platform": "windows"
+},
+"STORAGE-2": {
+  "name": "Crash Dumps & Log File Exposure",
+  "description": "Sensitive info in .dmp, .log, or temp files left in writable locations.",
+  "test_note": "Search %LocalAppData%\\<App> *.dmp *.log; ProcMon during forced crash",
+  "category": "8_STORAGE",
+  "custom": true,
+  "platform": "windows"
+},
+
+"FILE-1": {
+  "name": "Symlink / Junction Attacks",
+  "description": "Plant symbolic links/junctions in writable directories used by the thick client.",
+  "test_note": "mklink /J or /D; ProcMon CreateFile monitoring on app paths",
+  "category": "9_FILEOPS",
+  "custom": true,
+  "platform": "windows"
+},
+"FILE-2": {
+  "name": "Directory Traversal in File Dialogs",
+  "description": "Path traversal via save/open dialogs and file handling routines.",
+  "test_note": "../../.. payloads in filename fields; monitor ProcMon for unexpected paths",
+  "category": "9_FILEOPS",
+  "mitre_ref": "CWE-22",
+  "custom": true,
+  "platform": "windows"
+},
+
+"UPDATE-1": {
+  "name": "Insecure Auto-Update Mechanism",
+  "description": "Unsigned manifests, MITM-able update channels, executable replacement.",
+  "test_note": "Intercept update traffic; replace update EXE/DLL; check code signing + hash",
+  "category": "10_UPDATE",
+  "custom": true,
+  "platform": "windows"
+},
+
+"IPC-1": {
+  "name": "COM / DCOM / CLSID Hijacking",
+  "description": "Abuse COM objects, Image File Execution Options, or CLSID registration.",
+  "test_note": "reg query HKCR\\CLSID; OleView; IFEO registry tampering",
+  "category": "11_IPC",
+  "mitre_ref": "T1546.003",
+  "custom": true,
+  "platform": "windows"
+},
 
   // ── Linux ────────────────────────────────────────────────────────────────
   "T1574.006": { name: "LD_PRELOAD", description: "Hijack shared library loading.", test_note: "LD_PRELOAD=./evil.so ./app", category: "DLL/SO Attacks", platform: "linux" },
@@ -198,7 +338,7 @@ const STATUS_LABELS = {
 const COVERAGE_KEY     = 'scopeAwareCoverage';
 const PROJECT_NAME_KEY = 'attck_project_name';
 const PENTESTER_KEY    = 'attck_pentester_name';
-const CREDIT           = 'Vibed by 0xdhanesh & MadhuMJ01';
+const CREDIT           = '🧙 Vibed by 0xdhanesh 🤖';
 
 // ── Data model ─────────────────────────────────────────────────────────────
 // Each entry is { status, notes }. Old string-only entries are migrated on read.
@@ -299,7 +439,7 @@ function getCardHTML(id) {
 
   // Category chip
   const categoryHtml = tech.category
-    ? `<span class="category-tag">${tech.category}</span>`
+    ? `<span class="category-tag">${esc(tech.category)}</span>`
     : '';
 
   // Sub-technique reference or custom badge
@@ -307,20 +447,20 @@ function getCardHTML(id) {
   if (tech.custom) {
     refHtml = `<span class="custom-tag">Custom · Non-MITRE</span>`;
   } else if (tech.mitre_ref) {
-    refHtml = `<span class="mitre-ref-tag">↗ ${tech.mitre_ref}</span>`;
+    refHtml = `<span class="mitre-ref-tag">↗ ${esc(tech.mitre_ref)}</span>`;
   }
 
   return `
-    <div class="technique-card status-${status}" data-id="${id}">
+    <div class="technique-card status-${status}" data-id="${esc(id)}">
       <div class="card-header">
-        <span class="technique-id">${id}</span>
+        <span class="technique-id">${esc(id)}</span>
         ${categoryHtml}
         <span class="status-badge badge-${status}">${STATUS_LABELS[status]}</span>
       </div>
-      <div class="technique-name">${tech.name}</div>
+      <div class="technique-name">${esc(tech.name)}</div>
       ${refHtml}
-      <div class="technique-desc">${tech.description}</div>
-      <div class="test-note">${tech.test_note}</div>
+      <div class="technique-desc">${esc(tech.description)}</div>
+      <div class="test-note">${esc(tech.test_note)}</div>
       <div class="card-footer">
         <button class="status-btn" data-status="not-tested">Not Tested</button>
         <button class="status-btn" data-status="in-progress">In Progress</button>
@@ -328,8 +468,8 @@ function getCardHTML(id) {
         <button class="status-btn" data-status="out-of-scope">OOS</button>
         <button class="status-btn" data-status="blocked">Blocked</button>
       </div>
-      <button class="notes-toggle" data-id="${id}">${hasNotes ? 'Hide notes' : 'Add notes'}</button>
-      <textarea class="notes-area" data-id="${id}" placeholder="Test notes, evidence, tool output…" maxlength="2000"${hasNotes ? '' : ' hidden'}></textarea>
+      <button class="notes-toggle" data-id="${esc(id)}">${hasNotes ? 'Hide notes' : 'Add notes'}</button>
+      <textarea class="notes-area" data-id="${esc(id)}" placeholder="Test notes, evidence, tool output…" maxlength="2000"${hasNotes ? '' : ' hidden'}></textarea>
     </div>`;
 }
 
@@ -384,7 +524,7 @@ function renderGrid() {
     });
     grouped.forEach((ids, cat) => {
       // Category section header (spans full grid width)
-      grid.innerHTML += `<div class="category-header"><span>${cat}</span><span class="category-count">${ids.length}</span></div>`;
+      grid.innerHTML += `<div class="category-header"><span>${esc(cat)}</span><span class="category-count">${ids.length}</span></div>`;
       ids.forEach(id => { grid.innerHTML += getCardHTML(id); });
     });
   } else {
@@ -472,7 +612,8 @@ function esc(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 // ── SVG export ─────────────────────────────────────────────────────────────

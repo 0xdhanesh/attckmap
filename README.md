@@ -103,4 +103,4 @@ Techniques appear in the grid in the same order they are defined in `ATTACK_DB`.
 
 ---
 
-*Vibed by **0xdhanesh** & **MadhuMJ01***
+*🧙 Vibed by **0xdhanesh** 🤖*
