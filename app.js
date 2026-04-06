@@ -638,6 +638,145 @@ const ATTACK_DB = {
   "mitre_ref": "T1559"
 },
 
+// === iOS MOBILE ===
+"IRECON-1": {
+  "name": "IPA Fingerprint & Info.plist Analysis",
+  "description": "Extract entitlements, ATS settings, keychain usage, bundle ID.",
+  "test_note": "unzip app.ipa; plutil -p Payload/*.app/Info.plist; codesign -d --entitlements :- Payload/*.app",
+  "category": "1_IRECON",
+  "platform": "ios",
+  "custom": true
+},
+"IRECON-2": {
+  "name": "Static IPA Analysis (MobSF)",
+  "description": "Automated scan for hardcoded secrets and weak configs.",
+  "test_note": "mobsf app.ipa; review Binary Analysis and Strings tabs",
+  "category": "1_IRECON",
+  "platform": "ios",
+  "custom": true
+},
+
+"ISTATIC-1": {
+  "name": "Hardcoded Secrets & Strings",
+  "description": "Credentials or keys in binary/strings.",
+  "test_note": "strings Payload/*.app/* | grep -Ei 'pass|key|token|secret'; or MobSF",
+  "category": "2_ISTATIC",
+  "platform": "ios",
+  "mitre_ref": "T1552.001"
+},
+"ISTATIC-2": {
+  "name": "Decompilation & Logic Review",
+  "description": "Reverse Mach-O with Hopper or Ghidra.",
+  "test_note": "Hopper app; search for auth/login functions",
+  "category": "2_ISTATIC",
+  "platform": "ios",
+  "mitre_ref": "CWE-327"
+},
+
+"ITRAFFIC-1": {
+  "name": "Intercept HTTP/HTTPS Traffic",
+  "description": "Capture all outbound calls with Burp.",
+  "test_note": "Burp CA installed via device proxy; Frida SSL pinning bypass",
+  "category": "3_ITRAFFIC",
+  "platform": "ios",
+  "mitre_ref": "T1048"
+},
+"ITRAFFIC-2": {
+  "name": "Broken TLS / Certificate Validation",
+  "description": "No pinning or weak cert checks.",
+  "test_note": "objection sslpinning disable; or Frida script (SSLKillSwitch)",
+  "category": "3_ITRAFFIC",
+  "platform": "ios",
+  "mitre_ref": "CWE-295"
+},
+
+"ICRYPTO-1": {
+  "name": "Weak Cryptography Implementation",
+  "description": "Hardcoded keys or insecure CommonCrypto usage.",
+  "test_note": "grep -rE 'CCCrypt|kCCAlgorithm' Payload/; check SecKey API calls",
+  "category": "4_ICRYPTO",
+  "platform": "ios",
+  "mitre_ref": "CWE-327"
+},
+
+"ISTORAGE-1": {
+  "name": "Insecure Local Storage (Keychain / Plist / Files)",
+  "description": "Plaintext data in Keychain, .plist, or Documents folder.",
+  "test_note": "objection keychain dump; or frida dump keychain; check /var/mobile/Containers/Data/Application/",
+  "category": "5_ISTORAGE",
+  "platform": "ios",
+  "mitre_ref": "T1555"
+},
+"ISTORAGE-2": {
+  "name": "iTunes Backup Abuse",
+  "description": "Sensitive data exposed in unencrypted backups.",
+  "test_note": "iTunes backup + iBackup Viewer; search for app data",
+  "category": "5_ISTORAGE",
+  "platform": "ios",
+  "custom": true
+},
+
+"IAUTH-1": {
+  "name": "Client-Side Auth / Authorization Flaws",
+  "description": "Logic performed on device only.",
+  "test_note": "Frida hook login methods; force return true via Objection",
+  "category": "6_IAUTH",
+  "platform": "ios",
+  "mitre_ref": "CWE-602"
+},
+
+"IPLATFORM-1": {
+  "name": "Jailbreak Detection Bypass",
+  "description": "App checks for Cydia, file paths, or syscalls.",
+  "test_note": "objection jailbreak disable; Frida script hook jailbreak checks",
+  "category": "7_IPLATFORM",
+  "platform": "ios",
+  "custom": true
+},
+"IPLATFORM-2": {
+  "name": "WebView / WKWebView Injection",
+  "description": "JS bridge or improper allowFileAccess.",
+  "test_note": "Frida trace WKWebView; test javascript:alert(1) or file:// payloads",
+  "category": "7_IPLATFORM",
+  "platform": "ios",
+  "mitre_ref": "CWE-79"
+},
+
+"IREVERSE-1": {
+  "name": "Anti-Tampering & RASP Checks",
+  "description": "Debugger, tweak, or integrity detection.",
+  "test_note": "Frida: bypass ptrace/anti-debug; hook _dyld_get_image_name",
+  "category": "8_IREVERSE",
+  "platform": "ios",
+  "custom": true
+},
+
+"IRUNTIME-1": {
+  "name": "Runtime Memory & Keychain Dump",
+  "description": "Extract tokens/keys from live process.",
+  "test_note": "objection memory dump; frida -U -f com.app.id -l dump.js",
+  "category": "9_IRUNTIME",
+  "platform": "ios",
+  "mitre_ref": "T1003"
+},
+"IRUNTIME-2": {
+  "name": "Dynamic Method Hooking (Frida/Objection)",
+  "description": "Bypass any client-side logic at runtime.",
+  "test_note": "objection -g com.app.id explore; ios hooking set return_value true",
+  "category": "9_IRUNTIME",
+  "platform": "ios",
+  "custom": true
+},
+
+"IIPC-1": {
+  "name": "URL Scheme / Universal Link Hijacking",
+  "description": "Malicious deep links or custom schemes.",
+  "test_note": "check Info.plist for CFBundleURLTypes; test custom://payload",
+  "category": "10_IIPC",
+  "platform": "ios",
+  "mitre_ref": "T1579"
+},
+
 
 
 };
