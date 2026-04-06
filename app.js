@@ -985,7 +985,114 @@ const ATTACK_DB = {
   "category": "8_AWSPERSISTENCE",
   "platform": "aws",
   "mitre_ref": "T1053.007"
-}
+},
+
+// === AZURE CLOUD ===
+"AZURERE CON-1": {
+  "name": "Tenant & Subscription Enumeration",
+  "description": "Discover tenants, subscriptions, resource groups.",
+  "test_note": "az account list; az ad tenant list; az resource list",
+  "category": "1_AZURERE CON",
+  "platform": "azure",
+  "custom": true
+},
+"AZURERE CON-2": {
+  "name": "IAM & Service Principal Recon",
+  "description": "Enumerate users, groups, RBAC roles, and app registrations.",
+  "test_note": "az ad user list; az role assignment list; az ad sp list",
+  "category": "1_AZURERE CON",
+  "platform": "azure",
+  "mitre_ref": "T1589"
+},
+
+"AZURESTATIC-1": {
+  "name": "IaC Scanning (ARM/Bicep/Terraform)",
+  "description": "Detect insecure resources in ARM/Bicep templates.",
+  "test_note": "az bicep build; checkov -d .; tfsec .",
+  "category": "2_AZURESTATIC",
+  "platform": "azure",
+  "custom": true
+},
+"AZURESTATIC-2": {
+  "name": "Hardcoded Secrets in Code",
+  "description": "Keys, tokens in Azure DevOps, Key Vault, or source.",
+  "test_note": "az keyvault secret list; trufflehog; ScoutSuite --provider azure",
+  "category": "2_AZURESTATIC",
+  "platform": "azure",
+  "mitre_ref": "T1552.001"
+},
+
+"AZUREMISCONFIG-1": {
+  "name": "Storage Account & Blob Misconfigs",
+  "description": "Public containers, weak SAS tokens, firewall disabled.",
+  "test_note": "az storage account list; az storage container list",
+  "category": "3_AZUREMISCONFIG",
+  "platform": "azure",
+  "mitre_ref": "T1530"
+},
+"AZUREMISCONFIG-2": {
+  "name": "Network Security Group Over-Permission",
+  "description": "Allow-all rules or missing NSG on NICs.",
+  "test_note": "az network nsg list; az network nsg rule list",
+  "category": "3_AZUREMISCONFIG",
+  "platform": "azure",
+  "mitre_ref": "T1190"
+},
+
+"AZUREIDENTITY-1": {
+  "name": "RBAC Privilege Escalation",
+  "description": "Owner/Contributor roles or custom roles with dangerous actions.",
+  "test_note": "az role assignment list; az role definition list",
+  "category": "4_AZUREIDENTITY",
+  "platform": "azure",
+  "mitre_ref": "T1098.003"
+},
+"AZUREIDENTITY-2": {
+  "name": "Managed Identity / Federated Abuse",
+  "description": "Over-privileged managed identities or federation.",
+  "test_note": "az identity list; az ad app list",
+  "category": "4_AZUREIDENTITY",
+  "platform": "azure",
+  "custom": true
+},
+
+"AZURESTORAGE-1": {
+  "name": "Sensitive Data in Blob / Key Vault",
+  "description": "Unencrypted or publicly accessible data.",
+  "test_note": "az storage blob list; az keyvault secret list",
+  "category": "5_AZURESTORAGE",
+  "platform": "azure",
+  "mitre_ref": "T1555"
+},
+
+"AZURENETWORK-1": {
+  "name": "VNet & Private Link Exposure",
+  "description": "Public endpoints or misconfigured private endpoints.",
+  "test_note": "az network vnet list; az network private-endpoint list",
+  "category": "6_AZURENETWORK",
+  "platform": "azure",
+  "mitre_ref": "T1190"
+},
+
+"AZURERUNTIME-1": {
+  "name": "AKS / Container Apps / Functions Runtime",
+  "description": "Env vars, secrets mounted in pods, or function apps.",
+  "test_note": "az aks list; az containerapp list; kubectl get secrets",
+  "category": "7_AZURERUNTIME",
+  "platform": "azure",
+  "custom": true
+},
+
+"AZUREPERSIST-1": {
+  "name": "Backdoor via Logic Apps / Azure Functions",
+  "description": "Persistence through triggers or scheduled workflows.",
+  "test_note": "az logic workflow list; az functionapp list",
+  "category": "8_AZUREPERSISTENCE",
+  "platform": "azure",
+  "mitre_ref": "T1053.007"
+},
+
+
 
 };
 
