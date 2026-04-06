@@ -294,19 +294,186 @@ const ATTACK_DB = {
   "platform": "windows"
 },
 
-  // ── Linux ────────────────────────────────────────────────────────────────
-  "T1574.006": { name: "LD_PRELOAD", description: "Hijack shared library loading.", test_note: "LD_PRELOAD=./evil.so ./app", category: "DLL/SO Attacks", platform: "linux" },
-  "T1574.007": { name: "PATH Interception", description: "Hijack via PATH env var.", test_note: "Prepend malicious dir to $PATH", category: "DLL/SO Attacks", platform: "linux" },
-  "T1548.001": { name: "Setuid/Setgid", description: "Abuse SUID binaries for escalation.", test_note: "find / -perm -4000 + test writeable SUID", category: "Privilege Escalation", platform: "linux" },
-  "T1053.003": { name: "Cron", description: "Persistence via cron jobs.", test_note: "crontab -e + root cron", category: "Persistence", platform: "linux" },
-  "T1547.006": { name: "rc.local", description: "Boot autostart scripts.", test_note: "/etc/rc.local", category: "Persistence", platform: "linux" },
-  "T1546.004": { name: "Unix Shell Config Modification", description: ".bashrc / .profile hijack", test_note: "Append payload to ~/.bashrc", category: "Persistence", platform: "linux" },
-  "T1543.002": { name: "Systemd Service", description: "Create systemd unit for persistence.", test_note: "systemctl --user enable malicious.service", category: "Persistence", platform: "linux" },
-  "T1036.004": { name: "Masquerade Task or Service", description: "Rename binary to look legit", test_note: "Rename to mimic legitimate binary", category: "Defense Evasion", platform: "linux" },
-  "T1548.003": { name: "sudoers Modification", description: "Modify sudoers for escalation", test_note: "Edit /etc/sudoers NOPASSWD entry", category: "Privilege Escalation", platform: "linux" },
-  "T1055.008": { name: "Process Injection: ptrace", description: "ptrace-based injection on Linux", test_note: "Attach ptrace to running process + shellcode", category: "Code Injection", platform: "linux" },
-  "T1556.003": { name: "PAM Backdoor", description: "Modify PAM config to create auth backdoor.", test_note: "Edit /etc/pam.d/common-auth + test login", category: "Credential Access", platform: "linux" },
-  "T1574.010": { name: "Service Binary Hijack", description: "Service binary hijack on Linux via weak file permissions.", test_note: "Replace service binary with malicious one", category: "DLL/SO Attacks", platform: "linux" }
+  // === LINUX THICK CLIENT — COMPLETE ATTACK_DB BLOCK (replace existing linux entries) ===
+"RECON-1": {
+  "name": "Binary Fingerprinting (ELF)",
+  "description": "Identify architecture, PIE, RELRO, NX, stripping, and linked libraries.",
+  "test_note": "file binary; checksec --file=binary; readelf -h -d binary; ldd binary",
+  "category": "1_RECON",
+  "platform": "linux",
+  "custom": true
+},
+"RECON-2": {
+  "name": "Binary Protections & Hardening",
+  "description": "Check ASLR, stack canaries, FORTIFY_SOURCE, and compiler flags.",
+  "test_note": "checksec --format=cli binary; objdump -d binary | grep -E 'canary|fortify'",
+  "category": "1_RECON",
+  "mitre_ref": "CWE-693",
+  "platform": "linux"
+},
+
+"STATIC-1": {
+  "name": "Hardcoded Secrets & Strings",
+  "description": "Extract credentials, keys, tokens from ELF strings and symbols.",
+  "test_note": "strings -n 8 binary | grep -Ei 'pass|key|token|secret|api'; floss binary",
+  "category": "2_STATIC",
+  "mitre_ref": "T1552.001",
+  "platform": "linux"
+},
+"STATIC-2": {
+  "name": "Decompilation & Logic Review",
+  "description": "Reverse engineer ELF with Ghidra, radare2, or IDA.",
+  "test_note": "ghidra binary; r2 -A binary; nm -a binary | grep -E 'main|auth'",
+  "category": "2_STATIC",
+  "mitre_ref": "CWE-327",
+  "platform": "linux"
+},
+"STATIC-3": {
+  "name": "Weak File & Directory Permissions",
+  "description": "Installation dir, .so files, configs writable by non-root.",
+  "test_note": "ls -la /opt/App /usr/local/bin/App; find /opt/App -type f -perm -o=w",
+  "category": "2_STATIC",
+  "mitre_ref": "T1544",
+  "platform": "linux"
+},
+
+"TRAFFIC-1": {
+  "name": "Intercept HTTP/HTTPS Traffic",
+  "description": "Proxy thick-client outbound traffic (Electron/Qt/WebView).",
+  "test_note": "mitmproxy or Burp with SSLKEYLOGFILE; set http_proxy && https_proxy",
+  "category": "3_TRAFFIC",
+  "mitre_ref": "T1048",
+  "platform": "linux"
+},
+"TRAFFIC-2": {
+  "name": "Broken TLS / Certificate Validation",
+  "description": "Weak ciphers, no pinning, self-signed acceptance.",
+  "test_note": "openssl s_client; test with Burp CA; Wireshark TLS handshake",
+  "category": "3_TRAFFIC",
+  "mitre_ref": "CWE-295",
+  "platform": "linux"
+},
+
+// 4_CSTest — merged all existing SO/DLL hijacks + new
+"T1574.006": {
+  "name": "LD_PRELOAD Hijacking",
+  "description": "Hijack shared object loading via environment variable.",
+  "test_note": "LD_PRELOAD=./evil.so ./app; gcc -shared -fPIC -o evil.so evil.c",
+  "category": "4_CSTest",
+  "platform": "linux"
+},
+"T1574.007": {
+  "name": "PATH Interception",
+  "description": "Hijack via malicious binary in $PATH.",
+  "test_note": "export PATH=./malicious:$PATH; ./app",
+  "category": "4_CSTest",
+  "platform": "linux"
+},
+"T1574.010": {
+  "name": "Service Binary Hijack",
+  "description": "Replace writable service binary with malicious ELF.",
+  "test_note": "find / -perm -o=w -type f -name '*.service' 2>/dev/null",
+  "category": "4_CSTest",
+  "platform": "linux"
+},
+"LINUX-SO-1": {
+  "name": "Shared Object Side-Loading",
+  "description": "Drop malicious .so in RPATH or LD_LIBRARY_PATH.",
+  "test_note": "objdump -p binary | grep RPATH; LD_LIBRARY_PATH=./evil ./app",
+  "category": "4_CSTest",
+  "platform": "linux"
+},
+
+"5_MEMORY-1": {
+  "name": "Process Memory Dump & Analysis",
+  "description": "Extract secrets from running process RAM (gcore, /proc/pid/mem).",
+  "test_note": "gcore <PID>; strings core.<PID> | grep -Ei 'pass|key|token'",
+  "category": "5_MEMORY",
+  "mitre_ref": "T1003",
+  "platform": "linux"
+},
+"5_MEMORY-2": {
+  "name": "Heap / Strace Inspection",
+  "description": "Trace syscalls and inspect heap for sensitive data post-auth.",
+  "test_note": "strace -p <PID> -e trace=open,read; gdb --pid=<PID>",
+  "category": "5_MEMORY",
+  "platform": "linux"
+},
+
+"6_PRIVESC-1": {
+  "name": "SUID / SGID Binary Abuse",
+  "description": "Exploit setuid binaries for privilege escalation.",
+  "test_note": "find / -type f -perm -4000 2>/dev/null; GTFOBins lookup",
+  "category": "6_PRIVESC",
+  "mitre_ref": "T1548.001",
+  "platform": "linux"
+},
+"6_PRIVESC-2": {
+  "name": "sudoers / Polkit Misconfig",
+  "description": "NOPASSWD entries, weak sudo rules, polkit bypass.",
+  "test_note": "sudo -l; pkexec --version; check /etc/sudoers",
+  "category": "6_PRIVESC",
+  "mitre_ref": "T1548.003",
+  "platform": "linux"
+},
+
+"7_PERSIST-1": {
+  "name": "Cron / rc.local Persistence",
+  "description": "User/root cron jobs or boot scripts.",
+  "test_note": "crontab -l; ls -la /etc/rc.local /etc/cron.*",
+  "category": "7_PERSISTENCE",
+  "mitre_ref": "T1053.003",
+  "platform": "linux"
+},
+"7_PERSIST-2": {
+  "name": "Systemd / .desktop Autostart",
+  "description": "User systemd units or .desktop files in ~/.config/autostart.",
+  "test_note": "systemctl --user list-unit-files; ls ~/.config/autostart",
+  "category": "7_PERSISTENCE",
+  "mitre_ref": "T1543.002",
+  "platform": "linux"
+},
+"7_PERSIST-3": {
+  "name": ".bashrc / Shell Profile Hijack",
+  "description": "Append payload to shell config files.",
+  "test_note": "echo 'payload' >> ~/.bashrc",
+  "category": "7_PERSISTENCE",
+  "mitre_ref": "T1546.004",
+  "platform": "linux"
+},
+
+"8_STORAGE-1": {
+  "name": "Insecure Config / DB Storage",
+  "description": "Plaintext secrets in ~/.config/App, SQLite, JSON.",
+  "test_note": "grep -RiE 'pass|key|token' ~/.config/App ~/.local/share/App",
+  "category": "8_STORAGE",
+  "platform": "linux"
+},
+
+"9_GUI-1": {
+  "name": "GUI Spying & Control Bypass",
+  "description": "xprop, xdotool, xspy to manipulate hidden UI elements.",
+  "test_note": "xprop -id $(xdotool getactivewindow); xdotool key F12",
+  "category": "9_GUI",
+  "platform": "linux"
+},
+
+"10_UPDATE-1": {
+  "name": "Insecure Auto-Update",
+  "description": "Unsigned .AppImage, .deb, or repo-based updates.",
+  "test_note": "curl update URL | grep -E 'http|unsigned'",
+  "category": "10_UPDATE",
+  "platform": "linux"
+},
+
+"11_IPC-1": {
+  "name": "D-Bus / IPC Abuse",
+  "description": "Insecure D-Bus services for inter-process communication.",
+  "test_note": "dbus-send --session --dest=...; busctl list",
+  "category": "11_IPC",
+  "platform": "linux"
+},
+
 };
 
 // Derived automatically from ATTACK_DB — do NOT edit this directly.
