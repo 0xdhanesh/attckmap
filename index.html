@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+  Scope-Aware ATT&CK Navigator — MCP v2.0
+  Exact design you requested (tabs, filters, stats bar, progress bar, card UI, 5 statuses)
+  Export changed to SVG + PDF only — zero JSON
+  100% static — GitHub Pages ready — localStorage only — CSP-ready
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Scope-aware ATT&CK technique tracker for thick-client assessments." />
+  <title>ATT&amp;CK Map — Scope Navigator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header>
+    <div class="name-group">
+      <div class="editable-wrap">
+        <span class="edit-icon">&#9998;</span>
+        <input type="text" id="project-name-input" class="project-name-input" placeholder="Set target name…" title="Click to edit project / target name" autocomplete="off" />
+      </div>
+      <div class="editable-wrap">
+        <span class="edit-icon">&#9998;</span>
+        <span class="field-label">Pentester</span>
+        <input type="text" id="pentester-input" class="pentester-input" placeholder="Your name…" title="Click to set pentester name" autocomplete="off" />
+      </div>
+    </div>
+    <!-- Platform Dropdown -->
+    <select id="platform-select" class="platform-select" aria-label="Select platform"></select>
+    <!-- Filter Pills -->
+    <div class="filter-bar" role="group" aria-label="Filter by status">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="not-tested">Not Tested</button>
+      <button class="filter-btn" data-filter="in-progress">In Progress</button>
+      <button class="filter-btn" data-filter="completed">Completed</button>
+      <button class="filter-btn" data-filter="out-of-scope">Out of Scope</button>
+      <button class="filter-btn" data-filter="blocked">Blocked</button>
+    </div>
+    <!-- Actions – EXPORT CHANGED TO SVG/PDF ONLY -->
+    <div class="header-controls">
+      <button class="btn" id="btn-export-svg" title="Export current matrix as clean vector SVG">Export SVG</button>
+      <button class="btn" id="btn-export-pdf" title="Export current matrix as PDF (Print → Save as PDF)">Export PDF</button>
+      <button class="btn btn-danger" id="btn-reset" title="Reset all statuses for current platform">Reset</button>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main>
+    <!-- Stats -->
+    <div class="stats-bar" role="region" aria-label="Summary statistics">
+      <div class="stat-chip" data-stat="not-tested">
+        <span class="stat-dot"></span>
+        <span class="stat-count" id="cnt-not-tested">—</span>
+        <span class="stat-label">Not Tested</span>
+      </div>
+      <div class="stat-chip" data-stat="in-progress">
+        <span class="stat-dot"></span>
+        <span class="stat-count" id="cnt-in-progress">—</span>
+        <span class="stat-label">In Progress</span>
+      </div>
+      <div class="stat-chip" data-stat="completed">
+        <span class="stat-dot"></span>
+        <span class="stat-count" id="cnt-completed">—</span>
+        <span class="stat-label">Completed</span>
+      </div>
+      <div class="stat-chip" data-stat="out-of-scope">
+        <span class="stat-dot"></span>
+        <span class="stat-count" id="cnt-out-of-scope">—</span>
+        <span class="stat-label">OOS</span>
+      </div>
+      <div class="stat-chip" data-stat="blocked">
+        <span class="stat-dot"></span>
+        <span class="stat-count" id="cnt-blocked">—</span>
+        <span class="stat-label">Blocked</span>
+      </div>
+    </div>
+    <!-- Progress Bar -->
+    <div class="progress-wrap" role="region" aria-label="Progress">
+      <div class="progress-label">
+        <span>Coverage</span>
+        <span id="progress-pct">—</span>
+      </div>
+      <div class="progress-bar-track" role="progressbar">
+        <div class="progress-segment seg-completed"   style="width:0%"></div>
+        <div class="progress-segment seg-in-progress" style="width:0%"></div>
+        <div class="progress-segment seg-blocked"     style="width:0%"></div>
+        <div class="progress-segment seg-out-of-scope" style="width:0%"></div>
+      </div>
+    </div>
+    <!-- Technique Cards -->
+    <div class="technique-grid" id="technique-grid" role="list" aria-label="Techniques">
+      <!-- Populated by app.js -->
+    </div>
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────── -->
+  <footer class="app-footer">
+    <span class="footer-ribbon">🚀 Vibed by <strong>0xdhanesh</strong></span>
+  </footer>
+
+  <!-- ── Toast ─────────────────────────────────────────── -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

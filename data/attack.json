@@ -1,0 +1,146 @@
+{
+  "T1574.001": {
+    "name": "DLL Search Order Hijacking",
+    "description": "Adversaries may hijack DLL search order to load malicious DLLs.",
+    "test_note": "Place malicious DLL in app dir → ProcMon load order",
+    "platform": "windows"
+  },
+  "T1574.002": {
+    "name": "DLL Side-Loading",
+    "description": "Load malicious DLL via side-loading path.",
+    "test_note": "Drop DLL next to EXE with same name as legitimate dependency",
+    "platform": "windows"
+  },
+  "T1547.001": {
+    "name": "Registry Run Keys",
+    "description": "Persistence via HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run.",
+    "test_note": "Write to Run key + test reboot",
+    "platform": "windows"
+  },
+  "T1543.003": {
+    "name": "Windows Service",
+    "description": "Create/modify service for persistence/escalation.",
+    "test_note": "sc create / sc config + weak permissions check",
+    "platform": "windows"
+  },
+  "T1055.001": {
+    "name": "Process Injection (DLL)",
+    "description": "Inject DLL into legitimate process.",
+    "test_note": "Use Process Hacker + classic CreateRemoteThread",
+    "platform": "windows"
+  },
+  "T1003.001": {
+    "name": "LSASS Memory Dump",
+    "description": "Credential dumping from LSASS.",
+    "test_note": "Mimikatz / procdump lsass.exe",
+    "platform": "windows"
+  },
+  "T1053.005": {
+    "name": "Scheduled Task",
+    "description": "Persistence via schtasks.",
+    "test_note": "schtasks /create + test trigger",
+    "platform": "windows"
+  },
+  "T1548.002": {
+    "name": "Bypass UAC",
+    "description": "UAC bypass techniques.",
+    "test_note": "fodhelper.exe / eventvwr.exe classic bypass",
+    "platform": "windows"
+  },
+  "T1112": {
+    "name": "Modify Registry",
+    "description": "Registry modifications for defense evasion/persistence.",
+    "test_note": "Regedit + common keys (AppInit_DLLs, etc.)",
+    "platform": "windows"
+  },
+  "T1547.004": {
+    "name": "Winlogon Helper DLL",
+    "description": "Winlogon helper DLL hijack.",
+    "test_note": "Set HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell",
+    "platform": "windows"
+  },
+  "T1559.001": {
+    "name": "COM Hijacking",
+    "description": "Component Object Model hijacking.",
+    "test_note": "CLSID registry hijack",
+    "platform": "windows"
+  },
+  "T1574.011": {
+    "name": "Hijack Execution Flow: Services File Permissions",
+    "description": "Service image path hijack via weak file permissions.",
+    "test_note": "Modify ImagePath in registry",
+    "platform": "windows"
+  },
+  "T1574.006": {
+    "name": "LD_PRELOAD Hijack",
+    "description": "Hijack shared library loading via LD_PRELOAD.",
+    "test_note": "LD_PRELOAD=./evil.so ./app",
+    "platform": "linux"
+  },
+  "T1574.007": {
+    "name": "PATH Interception",
+    "description": "Hijack via PATH env var manipulation.",
+    "test_note": "Prepend malicious dir to $PATH",
+    "platform": "linux"
+  },
+  "T1548.001": {
+    "name": "Setuid / Setgid Abuse",
+    "description": "Abuse SUID binaries for privilege escalation.",
+    "test_note": "find / -perm -4000 + test writeable SUID",
+    "platform": "linux"
+  },
+  "T1053.003": {
+    "name": "Cron Job Persistence",
+    "description": "Persistence via cron jobs.",
+    "test_note": "crontab -e + root cron",
+    "platform": "linux"
+  },
+  "T1547.006": {
+    "name": "RC Scripts",
+    "description": "Boot autostart via rc.local or equivalent scripts.",
+    "test_note": "/etc/rc.local",
+    "platform": "linux"
+  },
+  "T1546.004": {
+    "name": "Unix Shell Config Modification",
+    "description": "Hijack shell init files such as .bashrc or .profile.",
+    "test_note": "Append payload to ~/.bashrc",
+    "platform": "linux"
+  },
+  "T1543.002": {
+    "name": "Systemd Service",
+    "description": "Create systemd unit file for persistence.",
+    "test_note": "systemctl --user enable malicious.service",
+    "platform": "linux"
+  },
+  "T1036.004": {
+    "name": "Masquerade Task or Service",
+    "description": "Rename binary or service to appear legitimate.",
+    "test_note": "Rename binary to match system process name",
+    "platform": "linux"
+  },
+  "T1548.003": {
+    "name": "Sudo and Sudo Caching",
+    "description": "Modify sudoers for privilege escalation.",
+    "test_note": "Edit /etc/sudoers or add NOPASSWD entry",
+    "platform": "linux"
+  },
+  "T1055.008": {
+    "name": "Process Injection: ptrace",
+    "description": "ptrace-based code injection on Linux.",
+    "test_note": "Attach ptrace to running process + shellcode injection",
+    "platform": "linux"
+  },
+  "T1556.003": {
+    "name": "Pluggable Authentication Modules",
+    "description": "Modify PAM configuration to create authentication backdoor.",
+    "test_note": "Edit /etc/pam.d/common-auth + test login",
+    "platform": "linux"
+  },
+  "T1574.010": {
+    "name": "Hijack Execution Flow: Services File Permissions",
+    "description": "Service binary hijack via weak file permissions on Linux.",
+    "test_note": "Replace service binary with malicious one",
+    "platform": "linux"
+  }
+}
