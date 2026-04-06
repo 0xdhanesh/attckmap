@@ -1192,7 +1192,47 @@ const ATTACK_DB = {
   "mitre_ref": "T1565"
 },
 
-
+// === ETHERNETIP ===
+"ETHERNETIPRECON-1": {
+  "name": "EtherNet/IP CIP Device Enumeration",
+  "description": "List devices via ListIdentity / ListServices.",
+  "test_note": "plcscan -p enip or scapy EtherNetIP()",
+  "category": "1_ETHERNETIPRECON",
+  "platform": "ethernetip",
+  "custom": true
+},
+"ETHERNETIPTRAFFIC-1": {
+  "name": "EtherNet/IP CIP Traffic Interception",
+  "description": "Capture explicit/implicit messaging.",
+  "test_note": "Wireshark enip filter; ARP spoof",
+  "category": "2_ETHERNETIPTRAFFIC",
+  "platform": "ethernetip",
+  "mitre_ref": "T1040"
+},
+"ETHERNETIPREPLAY-1": {
+  "name": "EtherNet/IP CIP Command Replay",
+  "description": "Replay SetAttribute or ExecuteService packets.",
+  "test_note": "tcpdump capture → scapy replay; no sequence validation",
+  "category": "3_ETHERNETIPREPLAY",
+  "platform": "ethernetip",
+  "custom": true
+},
+"ETHERNETIPDOS-1": {
+  "name": "EtherNet/IP Unconnected Send Flood DoS",
+  "description": "Flood with malformed CIP unconnected messages → reboot.",
+  "test_note": "Scapy CIP() with invalid path; Rockwell observed",
+  "category": "4_ETHERNETIPDOS",
+  "platform": "ethernetip",
+  "custom": true
+},
+"ETHERNETIPUNAUTH-1": {
+  "name": "EtherNet/IP Unauthenticated Object Write",
+  "description": "Write attributes via CIP without authentication.",
+  "test_note": "CIP SetAttributeSingle on any class/instance",
+  "category": "5_ETHERNETIPUNAUTH",
+  "platform": "ethernetip",
+  "custom": true
+}
 
 };
 
