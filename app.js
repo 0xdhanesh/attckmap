@@ -882,7 +882,110 @@ const ATTACK_DB = {
   "mitre_ref": "T1053.007"
 },
 
+// === AWS CLOUD ===
+"AWSRECON-1": {
+  "name": "Account & Resource Enumeration",
+  "description": "Discover accounts, regions, and enabled services.",
+  "test_note": "aws sts get-caller-identity; aws ec2 describe-regions; aws organizations list-accounts",
+  "category": "1_AWSRECON",
+  "platform": "aws",
+  "custom": true
+},
+"AWSRECON-2": {
+  "name": "IAM & Role Recon",
+  "description": "Enumerate users, roles, policies, and trust relationships.",
+  "test_note": "aws iam list-users; aws iam list-roles; Prowler -p aws -c iam",
+  "category": "1_AWSRECON",
+  "platform": "aws",
+  "mitre_ref": "T1589"
+},
 
+"AWSSTATIC-1": {
+  "name": "IaC Scanning (CloudFormation/Terraform)",
+  "description": "Detect insecure resources in templates.",
+  "test_note": "cfn_nag; tfsec .; checkov -d .",
+  "category": "2_AWSSTATIC",
+  "platform": "aws",
+  "custom": true
+},
+"AWSSTATIC-2": {
+  "name": "Hardcoded Secrets in Code/Logs",
+  "description": "Keys, tokens in Lambda, S3, or build artifacts.",
+  "test_note": "aws secretsmanager list-secrets; trufflehog; ScoutSuite --provider aws",
+  "category": "2_AWSSTATIC",
+  "platform": "aws",
+  "mitre_ref": "T1552.001"
+},
+
+"AWSMISCONFIG-1": {
+  "name": "S3 Bucket Misconfigurations",
+  "description": "Public buckets, ACLs, bucket policies allowing anonymous access.",
+  "test_note": "aws s3 ls; aws s3api get-bucket-policy --bucket NAME; Prowler -p aws -c s3",
+  "category": "3_AWSMISCONFIG",
+  "platform": "aws",
+  "mitre_ref": "T1530"
+},
+"AWSMISCONFIG-2": {
+  "name": "Security Group & NACL Over-Permission",
+  "description": "0.0.0.0/0 rules or overly broad ingress/egress.",
+  "test_note": "aws ec2 describe-security-groups; aws ec2 describe-network-acls",
+  "category": "3_AWSMISCONFIG",
+  "platform": "aws",
+  "mitre_ref": "T1190"
+},
+
+"AWSIDENTITY-1": {
+  "name": "IAM Role Trust Policy Abuse",
+  "description": "Overly permissive AssumeRole relationships.",
+  "test_note": "aws iam list-role-policies; pacu iam__enum_roles",
+  "category": "4_AWSIDENTITY",
+  "platform": "aws",
+  "mitre_ref": "T1098.003"
+},
+"AWSIDENTITY-2": {
+  "name": "Federation & SSO Misconfig",
+  "description": "Weak SAML/OIDC or external identity providers.",
+  "test_note": "aws iam list-open-id-connect-providers",
+  "category": "4_AWSIDENTITY",
+  "platform": "aws",
+  "custom": true
+},
+
+"AWSSTORAGE-1": {
+  "name": "Sensitive Data in S3 / Secrets Manager",
+  "description": "Unencrypted or publicly accessible data.",
+  "test_note": "aws s3api get-bucket-encryption; aws secretsmanager list-secrets",
+  "category": "5_AWSSTORAGE",
+  "platform": "aws",
+  "mitre_ref": "T1555"
+},
+
+"AWSNETWORK-1": {
+  "name": "VPC & Transit Gateway Exposure",
+  "description": "Public subnets, open endpoints, or peering misconfigs.",
+  "test_note": "aws ec2 describe-vpcs; aws ec2 describe-instances",
+  "category": "6_AWSNETWORK",
+  "platform": "aws",
+  "mitre_ref": "T1190"
+},
+
+"AWSRUNTIME-1": {
+  "name": "Lambda / ECS / EKS Runtime Misconfigs",
+  "description": "Env vars, IAM roles attached to containers/functions.",
+  "test_note": "aws lambda list-functions; aws ecs describe-clusters",
+  "category": "7_AWSRUNTIME",
+  "platform": "aws",
+  "custom": true
+},
+
+"AWSPERSIST-1": {
+  "name": "Backdoor via EventBridge / Lambda",
+  "description": "Persistence through scheduled events or triggers.",
+  "test_note": "aws events list-rules; aws lambda list-event-source-mappings",
+  "category": "8_AWSPERSISTENCE",
+  "platform": "aws",
+  "mitre_ref": "T1053.007"
+}
 
 };
 
