@@ -2170,17 +2170,17 @@ const PENTESTER_KEY    = 'attck_pentester_name';
 const CREDIT           = '🧙 Vibed by 0xdhanesh 🤖';
 
 // ── Data model ─────────────────────────────────────────────────────────────
-// Each entry is { status, notes }. Old string-only entries are migrated on read.
+// Each entry is { status, notes, updated_at }. Old string-only entries are migrated on read.
 
 function getEntry(id) {
   const raw = coverage[currentPlatform][id];
-  if (!raw) return { status: 'not-tested', notes: '' };
-  if (typeof raw === 'string') return { status: raw, notes: '' }; // backward compat
-  return { status: raw.status || 'not-tested', notes: raw.notes || '' };
+  if (!raw) return { status: 'not-tested', notes: '', updated_at: null };
+  if (typeof raw === 'string') return { status: raw, notes: '', updated_at: null }; // backward compat
+  return { status: raw.status || 'not-tested', notes: raw.notes || '', updated_at: raw.updated_at || null };
 }
 
 function setEntry(id, patch) {
-  coverage[currentPlatform][id] = { ...getEntry(id), ...patch };
+  coverage[currentPlatform][id] = { ...getEntry(id), ...patch, updated_at: new Date().toISOString() };
   saveCoverage();
 }
 
@@ -2445,17 +2445,57 @@ function esc(str) {
     .replace(/'/g, '&#039;');
 }
 
+// ── Active platform detection ───────────────────────────────────────────────
+// Returns platforms that have at least one technique marked (non-"not-tested").
+// Falls back to [currentPlatform] if nothing has been touched yet.
+
+function getActivePlatforms() {
+  const active = Object.keys(TECHNIQUES).filter(platform => {
+    const bucket = coverage[platform] || {};
+    return Object.values(bucket).some(raw => {
+      const status = (raw && typeof raw === 'object') ? raw.status : raw;
+      return status && status !== 'not-tested';
+    });
+  });
+  return active.length ? active : [currentPlatform];
+}
+
+// ── Per-platform entry reader (platform-agnostic) ───────────────────────────
+
+function getEntryFor(platform, id) {
+  const raw = coverage[platform] && coverage[platform][id];
+  if (!raw) return { status: 'not-tested', notes: '' };
+  if (typeof raw === 'string') return { status: raw, notes: '' };
+  return { status: raw.status || 'not-tested', notes: raw.notes || '' };
+}
+
 // ── SVG export ─────────────────────────────────────────────────────────────
 
 function exportToSVG() {
+  const platforms = getActivePlatforms();
   const projectName = getProjectName();
   const svgNS = "http://www.w3.org/2000/svg";
-  // Pre-calculate canvas dimensions so bg rect and svg get correct height upfront
-  const techIds = TECHNIQUES[currentPlatform];
+
   const cols = 4; const cardW = 290; const cardH = 152; const gap = 20;
-  const startX = 40; const startY = 96;
-  const rows = Math.ceil(techIds.length / cols);
-  const canvasH = startY + rows * (cardH + gap) - gap + 44 + 30;
+  const startX = 40; const headerH = 72;
+  const sectionLabelH = 48; const sectionPadTop = 16; const sectionPadBottom = 24;
+
+  const STATUS_COLORS = {
+    "completed":    { stroke: "#238636", text: "#3fb950", bg: "#0d2010" },
+    "in-progress":  { stroke: "#388bfd", text: "#79c0ff", bg: "#0d1a2e" },
+    "blocked":      { stroke: "#8957e5", text: "#d2a8ff", bg: "#170e28" },
+    "out-of-scope": { stroke: "#6e402a", text: "#f0883e", bg: "#1a0f08" },
+    "not-tested":   { stroke: "#30363d", text: "#7d8590", bg: "#161b22" },
+  };
+
+  // Pre-calculate total canvas height
+  let canvasH = headerH;
+  platforms.forEach(platform => {
+    const ids = TECHNIQUES[platform] || [];
+    const rows = Math.ceil(ids.length / cols);
+    canvasH += sectionPadTop + sectionLabelH + rows * (cardH + gap) - gap + sectionPadBottom;
+  });
+  canvasH += 30; // watermark
 
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("width", "1320");
@@ -2471,195 +2511,195 @@ function exportToSVG() {
   // Header bar
   const headerBar = document.createElementNS(svgNS, "rect");
   headerBar.setAttribute("x", "0"); headerBar.setAttribute("y", "0");
-  headerBar.setAttribute("width", "1320"); headerBar.setAttribute("height", "72");
+  headerBar.setAttribute("width", "1320"); headerBar.setAttribute("height", String(headerH));
   headerBar.setAttribute("fill", "#161b22");
   svg.appendChild(headerBar);
 
-  // Header bottom border
   const headerBorder = document.createElementNS(svgNS, "line");
-  headerBorder.setAttribute("x1", "0"); headerBorder.setAttribute("y1", "72");
-  headerBorder.setAttribute("x2", "1320"); headerBorder.setAttribute("y2", "72");
+  headerBorder.setAttribute("x1", "0"); headerBorder.setAttribute("y1", String(headerH));
+  headerBorder.setAttribute("x2", "1320"); headerBorder.setAttribute("y2", String(headerH));
   headerBorder.setAttribute("stroke", "#30363d"); headerBorder.setAttribute("stroke-width", "1");
   svg.appendChild(headerBorder);
 
   // Project title
   const title = document.createElementNS(svgNS, "text");
   title.setAttribute("x", "40"); title.setAttribute("y", "44");
-  title.setAttribute("fill", "#e6edf3");
-  title.setAttribute("font-size", "22");
-  title.setAttribute("font-family", FONT_UI);
-  title.setAttribute("font-weight", "700");
+  title.setAttribute("fill", "#e6edf3"); title.setAttribute("font-size", "22");
+  title.setAttribute("font-family", FONT_UI); title.setAttribute("font-weight", "700");
   title.setAttribute("letter-spacing", "-0.3");
   title.textContent = projectName;
   svg.appendChild(title);
 
-  // Platform pill — dynamic width and right-aligned
-  const pillLabel = currentPlatform.toUpperCase();
-  const pillW = Math.max(64, pillLabel.length * 8 + 24);
-  const pillX = 1320 - pillW - 40;
-  const pill = document.createElementNS(svgNS, "rect");
-  pill.setAttribute("x", String(pillX)); pill.setAttribute("y", "24");
-  pill.setAttribute("width", String(pillW)); pill.setAttribute("height", "24");
-  pill.setAttribute("rx", "12"); pill.setAttribute("fill", "rgba(56,139,253,0.15)");
-  pill.setAttribute("stroke", "#388bfd"); pill.setAttribute("stroke-width", "1");
-  svg.appendChild(pill);
-
-  const pillText = document.createElementNS(svgNS, "text");
-  pillText.setAttribute("x", String(pillX + pillW / 2)); pillText.setAttribute("y", "40");
-  pillText.setAttribute("fill", "#79c0ff");
-  pillText.setAttribute("font-size", "11");
-  pillText.setAttribute("font-family", FONT_UI);
-  pillText.setAttribute("font-weight", "600");
-  pillText.setAttribute("text-anchor", "middle");
-  pillText.setAttribute("letter-spacing", "0.8");
-  pillText.textContent = pillLabel;
-  svg.appendChild(pillText);
-
-  // Cards
-
-  const STATUS_COLORS = {
-    "completed":    { stroke: "#238636", text: "#3fb950", bg: "#0d2010" },
-    "in-progress":  { stroke: "#388bfd", text: "#79c0ff", bg: "#0d1a2e" },
-    "blocked":      { stroke: "#8957e5", text: "#d2a8ff", bg: "#170e28" },
-    "out-of-scope": { stroke: "#6e402a", text: "#f0883e", bg: "#1a0f08" },
-    "not-tested":   { stroke: "#30363d", text: "#7d8590", bg: "#161b22" },
-  };
-
-  techIds.forEach((id, i) => {
-    const tech = ATTACK_DB[id];
-    const { status } = getEntry(id);
-    const col = i % cols; const row = Math.floor(i / cols);
-    const x = startX + col * (cardW + gap);
-    const y = startY + row * (cardH + gap);
-    const sc = STATUS_COLORS[status] || STATUS_COLORS["not-tested"];
-
-    // Card background
-    const card = document.createElementNS(svgNS, "rect");
-    card.setAttribute("x", x); card.setAttribute("y", y);
-    card.setAttribute("width", cardW); card.setAttribute("height", cardH);
-    card.setAttribute("rx", "8"); card.setAttribute("fill", sc.bg);
-    card.setAttribute("stroke", sc.stroke); card.setAttribute("stroke-width", "1.5");
-    svg.appendChild(card);
-
-    // Left accent bar
-    const accent = document.createElementNS(svgNS, "rect");
-    accent.setAttribute("x", x); accent.setAttribute("y", y);
-    accent.setAttribute("width", "4"); accent.setAttribute("height", cardH);
-    accent.setAttribute("rx", "8"); accent.setAttribute("fill", sc.stroke);
-    svg.appendChild(accent);
-
-    // Technique ID
-    const idText = document.createElementNS(svgNS, "text");
-    idText.setAttribute("x", x + 18); idText.setAttribute("y", y + 28);
-    idText.setAttribute("fill", "#388bfd");
-    idText.setAttribute("font-size", "11");
-    idText.setAttribute("font-family", FONT_MONO);
-    idText.setAttribute("font-weight", "600");
-    idText.setAttribute("letter-spacing", "0.5");
-    idText.textContent = id;
-    svg.appendChild(idText);
-
-    // Status badge (right-aligned)
-    const statusLabel = STATUS_LABELS[status].toUpperCase();
-    const statusX = x + cardW - 14;
-    const statusText = document.createElementNS(svgNS, "text");
-    statusText.setAttribute("x", statusX); statusText.setAttribute("y", y + 28);
-    statusText.setAttribute("fill", sc.text);
-    statusText.setAttribute("font-size", "9");
-    statusText.setAttribute("font-family", FONT_UI);
-    statusText.setAttribute("font-weight", "700");
-    statusText.setAttribute("text-anchor", "end");
-    statusText.setAttribute("letter-spacing", "0.8");
-    statusText.textContent = statusLabel;
-    svg.appendChild(statusText);
-
-    // Divider
-    const divider = document.createElementNS(svgNS, "line");
-    divider.setAttribute("x1", x + 14); divider.setAttribute("y1", y + 38);
-    divider.setAttribute("x2", x + cardW - 14); divider.setAttribute("y2", y + 38);
-    divider.setAttribute("stroke", sc.stroke); divider.setAttribute("stroke-width", "0.5"); divider.setAttribute("opacity", "0.5");
-    svg.appendChild(divider);
-
-    // Technique name
-    const maxChars = 32;
-    const displayName = tech.name.length > maxChars ? tech.name.slice(0, maxChars - 1) + '…' : tech.name;
-    const nameText = document.createElementNS(svgNS, "text");
-    nameText.setAttribute("x", x + 18); nameText.setAttribute("y", y + 62);
-    nameText.setAttribute("fill", "#e6edf3");
-    nameText.setAttribute("font-size", "13");
-    nameText.setAttribute("font-family", FONT_UI);
-    nameText.setAttribute("font-weight", "600");
-    nameText.textContent = displayName;
-    svg.appendChild(nameText);
-
-    // Description (truncated)
-    const descMaxChars = 40;
-    const displayDesc = tech.description.length > descMaxChars ? tech.description.slice(0, descMaxChars - 1) + '…' : tech.description;
-    const descText = document.createElementNS(svgNS, "text");
-    descText.setAttribute("x", x + 18); descText.setAttribute("y", y + 84);
-    descText.setAttribute("fill", "#7d8590");
-    descText.setAttribute("font-size", "10");
-    descText.setAttribute("font-family", FONT_UI);
-    descText.textContent = displayDesc;
-    svg.appendChild(descText);
-
-    // MITRE link / custom label
-    const mitreUrl = getMitreUrl(id);
-    const linkText = document.createElementNS(svgNS, "text");
-    linkText.setAttribute("x", x + 18); linkText.setAttribute("y", y + 112);
-    linkText.setAttribute("font-size", "9");
-    linkText.setAttribute("font-family", FONT_MONO);
-    linkText.setAttribute("opacity", "0.7");
-    if (mitreUrl) {
-      linkText.setAttribute("fill", "#388bfd");
-      linkText.textContent = mitreUrl.replace('https://', '');
-    } else if (ATTACK_DB[id].mitre_ref) {
-      linkText.setAttribute("fill", "#79c0ff");
-      linkText.textContent = `↗ Variant of ${ATTACK_DB[id].mitre_ref}`;
-    } else {
-      linkText.setAttribute("fill", "#f0883e");
-      linkText.textContent = 'Custom · Non-MITRE';
-    }
-    svg.appendChild(linkText);
-
-    // Notes line (truncated) — only rendered if notes exist
-    const { notes } = getEntry(id);
-    if (notes) {
-      const noteDivider = document.createElementNS(svgNS, "line");
-      noteDivider.setAttribute("x1", x + 14); noteDivider.setAttribute("y1", y + 120);
-      noteDivider.setAttribute("x2", x + cardW - 14); noteDivider.setAttribute("y2", y + 120);
-      noteDivider.setAttribute("stroke", sc.stroke); noteDivider.setAttribute("stroke-width", "0.5"); noteDivider.setAttribute("opacity", "0.3");
-      svg.appendChild(noteDivider);
-
-      const maxNoteChars = 48;
-      const noteDisplay = notes.length > maxNoteChars ? notes.slice(0, maxNoteChars - 1) + '…' : notes;
-      const noteText = document.createElementNS(svgNS, "text");
-      noteText.setAttribute("x", x + 18); noteText.setAttribute("y", y + 136);
-      noteText.setAttribute("fill", "#7d8590");
-      noteText.setAttribute("font-size", "9");
-      noteText.setAttribute("font-family", FONT_UI);
-      noteText.setAttribute("font-style", "italic");
-      noteText.textContent = noteDisplay;
-      svg.appendChild(noteText);
-    }
+  // Platform pills in header (right side)
+  let pillRightX = 1320 - 40;
+  [...platforms].reverse().forEach(platform => {
+    const pillLabel = platform.toUpperCase();
+    const pillW = Math.max(64, pillLabel.length * 8 + 24);
+    pillRightX -= pillW;
+    const pill = document.createElementNS(svgNS, "rect");
+    pill.setAttribute("x", String(pillRightX)); pill.setAttribute("y", "24");
+    pill.setAttribute("width", String(pillW)); pill.setAttribute("height", "24");
+    pill.setAttribute("rx", "12"); pill.setAttribute("fill", "rgba(56,139,253,0.15)");
+    pill.setAttribute("stroke", "#388bfd"); pill.setAttribute("stroke-width", "1");
+    svg.appendChild(pill);
+    const pillText = document.createElementNS(svgNS, "text");
+    pillText.setAttribute("x", String(pillRightX + pillW / 2)); pillText.setAttribute("y", "40");
+    pillText.setAttribute("fill", "#79c0ff"); pillText.setAttribute("font-size", "11");
+    pillText.setAttribute("font-family", FONT_UI); pillText.setAttribute("font-weight", "600");
+    pillText.setAttribute("text-anchor", "middle"); pillText.setAttribute("letter-spacing", "0.8");
+    pillText.textContent = pillLabel;
+    svg.appendChild(pillText);
+    pillRightX -= 8;
   });
 
-  // Watermark bar at bottom — positioned dynamically
-  const wBarY = canvasH - 30;
+  // Render each platform section
+  let cursorY = headerH;
+
+  platforms.forEach(platform => {
+    const techIds = TECHNIQUES[platform] || [];
+    cursorY += sectionPadTop;
+
+    // Section label background strip
+    const secBg = document.createElementNS(svgNS, "rect");
+    secBg.setAttribute("x", "0"); secBg.setAttribute("y", String(cursorY));
+    secBg.setAttribute("width", "1320"); secBg.setAttribute("height", String(sectionLabelH));
+    secBg.setAttribute("fill", "#161b22");
+    svg.appendChild(secBg);
+
+    // Section label text
+    const secLabel = document.createElementNS(svgNS, "text");
+    secLabel.setAttribute("x", "40"); secLabel.setAttribute("y", String(cursorY + 30));
+    secLabel.setAttribute("fill", "#388bfd"); secLabel.setAttribute("font-size", "14");
+    secLabel.setAttribute("font-family", FONT_UI); secLabel.setAttribute("font-weight", "700");
+    secLabel.setAttribute("letter-spacing", "1.5");
+    secLabel.textContent = platform.toUpperCase();
+    svg.appendChild(secLabel);
+
+    // Covered count in section header
+    const covCount = techIds.filter(id => getEntryFor(platform, id).status !== 'not-tested').length;
+    const secMeta = document.createElementNS(svgNS, "text");
+    secMeta.setAttribute("x", String(1320 - 40)); secMeta.setAttribute("y", String(cursorY + 30));
+    secMeta.setAttribute("fill", "#484f58"); secMeta.setAttribute("font-size", "11");
+    secMeta.setAttribute("font-family", FONT_UI); secMeta.setAttribute("text-anchor", "end");
+    secMeta.textContent = `${covCount} / ${techIds.length} covered`;
+    svg.appendChild(secMeta);
+
+    cursorY += sectionLabelH;
+
+    // Cards for this platform
+    techIds.forEach((id, i) => {
+      const tech = ATTACK_DB[id];
+      const { status, notes } = getEntryFor(platform, id);
+      const col = i % cols; const row = Math.floor(i / cols);
+      const x = startX + col * (cardW + gap);
+      const y = cursorY + row * (cardH + gap);
+      const sc = STATUS_COLORS[status] || STATUS_COLORS["not-tested"];
+
+      const card = document.createElementNS(svgNS, "rect");
+      card.setAttribute("x", x); card.setAttribute("y", y);
+      card.setAttribute("width", cardW); card.setAttribute("height", cardH);
+      card.setAttribute("rx", "8"); card.setAttribute("fill", sc.bg);
+      card.setAttribute("stroke", sc.stroke); card.setAttribute("stroke-width", "1.5");
+      svg.appendChild(card);
+
+      const accent = document.createElementNS(svgNS, "rect");
+      accent.setAttribute("x", x); accent.setAttribute("y", y);
+      accent.setAttribute("width", "4"); accent.setAttribute("height", cardH);
+      accent.setAttribute("rx", "8"); accent.setAttribute("fill", sc.stroke);
+      svg.appendChild(accent);
+
+      const idText = document.createElementNS(svgNS, "text");
+      idText.setAttribute("x", x + 18); idText.setAttribute("y", y + 28);
+      idText.setAttribute("fill", "#388bfd"); idText.setAttribute("font-size", "11");
+      idText.setAttribute("font-family", FONT_MONO); idText.setAttribute("font-weight", "600");
+      idText.setAttribute("letter-spacing", "0.5");
+      idText.textContent = id;
+      svg.appendChild(idText);
+
+      const statusLabel = STATUS_LABELS[status].toUpperCase();
+      const statusText = document.createElementNS(svgNS, "text");
+      statusText.setAttribute("x", x + cardW - 14); statusText.setAttribute("y", y + 28);
+      statusText.setAttribute("fill", sc.text); statusText.setAttribute("font-size", "9");
+      statusText.setAttribute("font-family", FONT_UI); statusText.setAttribute("font-weight", "700");
+      statusText.setAttribute("text-anchor", "end"); statusText.setAttribute("letter-spacing", "0.8");
+      statusText.textContent = statusLabel;
+      svg.appendChild(statusText);
+
+      const divider = document.createElementNS(svgNS, "line");
+      divider.setAttribute("x1", x + 14); divider.setAttribute("y1", y + 38);
+      divider.setAttribute("x2", x + cardW - 14); divider.setAttribute("y2", y + 38);
+      divider.setAttribute("stroke", sc.stroke); divider.setAttribute("stroke-width", "0.5"); divider.setAttribute("opacity", "0.5");
+      svg.appendChild(divider);
+
+      const maxChars = 32;
+      const displayName = tech.name.length > maxChars ? tech.name.slice(0, maxChars - 1) + '…' : tech.name;
+      const nameText = document.createElementNS(svgNS, "text");
+      nameText.setAttribute("x", x + 18); nameText.setAttribute("y", y + 62);
+      nameText.setAttribute("fill", "#e6edf3"); nameText.setAttribute("font-size", "13");
+      nameText.setAttribute("font-family", FONT_UI); nameText.setAttribute("font-weight", "600");
+      nameText.textContent = displayName;
+      svg.appendChild(nameText);
+
+      const descMaxChars = 40;
+      const displayDesc = tech.description.length > descMaxChars ? tech.description.slice(0, descMaxChars - 1) + '…' : tech.description;
+      const descText = document.createElementNS(svgNS, "text");
+      descText.setAttribute("x", x + 18); descText.setAttribute("y", y + 84);
+      descText.setAttribute("fill", "#7d8590"); descText.setAttribute("font-size", "10");
+      descText.setAttribute("font-family", FONT_UI);
+      descText.textContent = displayDesc;
+      svg.appendChild(descText);
+
+      const mitreUrl = getMitreUrl(id);
+      const linkText = document.createElementNS(svgNS, "text");
+      linkText.setAttribute("x", x + 18); linkText.setAttribute("y", y + 112);
+      linkText.setAttribute("font-size", "9"); linkText.setAttribute("font-family", FONT_MONO);
+      linkText.setAttribute("opacity", "0.7");
+      if (mitreUrl) {
+        linkText.setAttribute("fill", "#388bfd");
+        linkText.textContent = mitreUrl.replace('https://', '');
+      } else if (ATTACK_DB[id].mitre_ref) {
+        linkText.setAttribute("fill", "#79c0ff");
+        linkText.textContent = `↗ Variant of ${ATTACK_DB[id].mitre_ref}`;
+      } else {
+        linkText.setAttribute("fill", "#f0883e");
+        linkText.textContent = 'Custom · Non-MITRE';
+      }
+      svg.appendChild(linkText);
+
+      if (notes) {
+        const noteDivider = document.createElementNS(svgNS, "line");
+        noteDivider.setAttribute("x1", x + 14); noteDivider.setAttribute("y1", y + 120);
+        noteDivider.setAttribute("x2", x + cardW - 14); noteDivider.setAttribute("y2", y + 120);
+        noteDivider.setAttribute("stroke", sc.stroke); noteDivider.setAttribute("stroke-width", "0.5"); noteDivider.setAttribute("opacity", "0.3");
+        svg.appendChild(noteDivider);
+
+        const maxNoteChars = 48;
+        const noteDisplay = notes.length > maxNoteChars ? notes.slice(0, maxNoteChars - 1) + '…' : notes;
+        const noteText = document.createElementNS(svgNS, "text");
+        noteText.setAttribute("x", x + 18); noteText.setAttribute("y", y + 136);
+        noteText.setAttribute("fill", "#7d8590"); noteText.setAttribute("font-size", "9");
+        noteText.setAttribute("font-family", FONT_UI); noteText.setAttribute("font-style", "italic");
+        noteText.textContent = noteDisplay;
+        svg.appendChild(noteText);
+      }
+    });
+
+    const rows = Math.ceil(techIds.length / cols);
+    cursorY += rows * (cardH + gap) - gap + sectionPadBottom;
+  });
+
+  // Watermark bar
   const wBar = document.createElementNS(svgNS, "rect");
-  wBar.setAttribute("x", "0"); wBar.setAttribute("y", String(wBarY));
+  wBar.setAttribute("x", "0"); wBar.setAttribute("y", String(cursorY));
   wBar.setAttribute("width", "1320"); wBar.setAttribute("height", "30");
   wBar.setAttribute("fill", "#161b22");
   svg.appendChild(wBar);
 
   const wText = document.createElementNS(svgNS, "text");
-  wText.setAttribute("x", "660"); wText.setAttribute("y", String(wBarY + 20));
-  wText.setAttribute("fill", "#484f58");
-  wText.setAttribute("font-size", "11");
-  wText.setAttribute("font-family", FONT_UI);
-  wText.setAttribute("font-weight", "500");
-  wText.setAttribute("text-anchor", "middle");
-  wText.setAttribute("letter-spacing", "0.5");
+  wText.setAttribute("x", "660"); wText.setAttribute("y", String(cursorY + 20));
+  wText.setAttribute("fill", "#484f58"); wText.setAttribute("font-size", "11");
+  wText.setAttribute("font-family", FONT_UI); wText.setAttribute("font-weight", "500");
+  wText.setAttribute("text-anchor", "middle"); wText.setAttribute("letter-spacing", "0.5");
   wText.textContent = CREDIT;
   svg.appendChild(wText);
 
@@ -2668,26 +2708,26 @@ function exportToSVG() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `scope-navigator-${currentPlatform}.svg`;
+  a.download = `scope-navigator-${platforms.join('-')}.svg`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast("SVG exported");
+  showToast(`SVG exported (${platforms.length} platform${platforms.length > 1 ? 's' : ''})`);
 }
 
 // ── PDF export ─────────────────────────────────────────────────────────────
 
 function exportToPDF() {
-  const techIds       = TECHNIQUES[currentPlatform];
-  const counts        = { "not-tested": 0, "in-progress": 0, "completed": 0, "out-of-scope": 0, "blocked": 0 };
-  techIds.forEach(id => { counts[getEntry(id).status]++; });
+  generateMultiPlatformPDF(getActivePlatforms());
+}
 
-  const projectName   = getProjectName();
-  const pentester     = getPentesterName();
-  const platformLabel = currentPlatform.charAt(0).toUpperCase() + currentPlatform.slice(1);
-  const dateStr       = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const covered       = techIds.filter(id => getEntry(id).status !== 'not-tested').length;
+function generateMultiPlatformPDF(selectedPlatforms) {
+  if (!selectedPlatforms.length) { showToast('Select at least one platform.'); return; }
+
+  const projectName = getProjectName();
+  const pentester   = getPentesterName();
+  const dateStr     = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const BADGE = {
     "completed":    "background:#dcfce7;color:#166534;border:1px solid #bbf7d0",
@@ -2697,35 +2737,119 @@ function exportToPDF() {
     "not-tested":   "background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb",
   };
 
-  const techniqueRows = techIds.map(id => {
-    const { status, notes } = getEntry(id);
-    const noteRow = notes
-      ? `<tr><td colspan="4" style="padding:3px 10px 9px 24px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280;font-style:italic;line-height:1.5">
-           <span style="font-weight:700;font-style:normal;color:#374151">Notes:</span> ${esc(notes)}
-         </td></tr>`
-      : '';
-    return `<tr>
-      <td style="font-family:monospace;font-size:11px;color:#1d4ed8;white-space:nowrap">${esc(id)}</td>
-      <td style="font-weight:600">${esc(ATTACK_DB[id].name)}</td>
-      <td style="white-space:nowrap">
-        <span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:0.4px;${BADGE[status]}">${esc(STATUS_LABELS[status])}</span>
-      </td>
-      <td style="font-family:monospace;font-size:10px">${(() => {
-        const u = getMitreUrl(id);
-        const entry = ATTACK_DB[id];
-        if (u) return `<a href="${esc(u)}" style="color:#1d4ed8;text-decoration:none">${esc(u)}</a>`;
-        if (entry.mitre_ref) {
-          const pu = getMitreUrl(entry.mitre_ref);
-          return pu
-            ? `<span style="color:#6b7280">Variant of </span><a href="${esc(pu)}" style="color:#1d4ed8;text-decoration:none">${esc(entry.mitre_ref)}</a>`
-            : `<span style="color:#6b7280">Variant of ${esc(entry.mitre_ref)}</span>`;
-        }
-        return `<span style="color:#9a3412;font-weight:600">Custom · Non-MITRE</span>`;
-      })()}</td>
-    </tr>${noteRow}`;
+  // ── Combined totals for the overview page ──
+  const totalCounts = { "not-tested": 0, "in-progress": 0, "completed": 0, "out-of-scope": 0, "blocked": 0 };
+  let totalTechs = 0;
+  selectedPlatforms.forEach(platform => {
+    const savedPlatform = currentPlatform;
+    // Read entries using coverage directly (not tied to currentPlatform)
+    (TECHNIQUES[platform] || []).forEach(id => {
+      const raw = coverage[platform] && coverage[platform][id];
+      const status = (raw && typeof raw === 'object') ? (raw.status || 'not-tested') : (typeof raw === 'string' ? raw : 'not-tested');
+      totalCounts[status]++;
+      totalTechs++;
+    });
+  });
+  const totalCovered = totalTechs - totalCounts['not-tested'];
+
+  // ── Helper: build technique rows for one platform ──
+  function buildRows(platform) {
+    return (TECHNIQUES[platform] || []).map(id => {
+      const raw = coverage[platform] && coverage[platform][id];
+      const status = (raw && typeof raw === 'object') ? (raw.status || 'not-tested') : (typeof raw === 'string' ? raw : 'not-tested');
+      const notes  = (raw && typeof raw === 'object') ? (raw.notes || '') : '';
+      const noteRow = notes
+        ? `<tr><td colspan="4" style="padding:3px 10px 9px 24px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#6b7280;font-style:italic;line-height:1.5">
+             <span style="font-weight:700;font-style:normal;color:#374151">Notes:</span> ${esc(notes)}
+           </td></tr>`
+        : '';
+      return `<tr>
+        <td style="font-family:monospace;font-size:11px;color:#1d4ed8;white-space:nowrap">${esc(id)}</td>
+        <td style="font-weight:600">${esc(ATTACK_DB[id].name)}</td>
+        <td style="white-space:nowrap">
+          <span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:0.4px;${BADGE[status]}">${esc(STATUS_LABELS[status])}</span>
+        </td>
+        <td style="font-family:monospace;font-size:10px">${(() => {
+          const u = getMitreUrl(id);
+          const entry = ATTACK_DB[id];
+          if (u) return `<a href="${esc(u)}" style="color:#1d4ed8;text-decoration:none">${esc(u)}</a>`;
+          if (entry.mitre_ref) {
+            const pu = getMitreUrl(entry.mitre_ref);
+            return pu
+              ? `<span style="color:#6b7280">Variant of </span><a href="${esc(pu)}" style="color:#1d4ed8;text-decoration:none">${esc(entry.mitre_ref)}</a>`
+              : `<span style="color:#6b7280">Variant of ${esc(entry.mitre_ref)}</span>`;
+          }
+          return `<span style="color:#9a3412;font-weight:600">Custom · Non-MITRE</span>`;
+        })()}</td>
+      </tr>${noteRow}`;
+    }).join('');
+  }
+
+  // ── Per-platform section pages ──
+  const platformSections = selectedPlatforms.map(platform => {
+    const label = platform.toUpperCase();
+    const ids   = TECHNIQUES[platform] || [];
+    const pc    = { "not-tested": 0, "in-progress": 0, "completed": 0, "out-of-scope": 0, "blocked": 0 };
+    ids.forEach(id => {
+      const raw = coverage[platform] && coverage[platform][id];
+      const s = (raw && typeof raw === 'object') ? (raw.status || 'not-tested') : (typeof raw === 'string' ? raw : 'not-tested');
+      pc[s]++;
+    });
+    const covered = ids.length - pc['not-tested'];
+    return `
+  <!-- PLATFORM: ${label} -->
+  <div class="pdf-page">
+    <div class="hdr">
+      <div>
+        <div class="eyebrow" style="margin-bottom:4px">Platform</div>
+        <div class="hdr-title">${esc(label)}</div>
+      </div>
+      <div class="hdr-meta">${esc(projectName)}<br>Report Date: ${esc(dateStr)}</div>
+    </div>
+    <div class="stat-grid" style="grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px">
+      <div class="stat-box blue"  ><div class="stat-lbl">Covered</div>    <div class="stat-val" style="font-size:28px">${covered}</div>   <div class="stat-sub">of ${ids.length}</div></div>
+      <div class="stat-box green" ><div class="stat-lbl">Completed</div>  <div class="stat-val" style="font-size:28px">${pc['completed']}</div>  <div class="stat-sub">&nbsp;</div></div>
+      <div class="stat-box blue"  ><div class="stat-lbl">In Progress</div><div class="stat-val" style="font-size:28px">${pc['in-progress']}</div><div class="stat-sub">&nbsp;</div></div>
+      <div class="stat-box purple"><div class="stat-lbl">Blocked</div>    <div class="stat-val" style="font-size:28px">${pc['blocked']}</div>    <div class="stat-sub">&nbsp;</div></div>
+      <div class="stat-box amber" ><div class="stat-lbl">Out of Scope</div><div class="stat-val" style="font-size:28px">${pc['out-of-scope']}</div><div class="stat-sub">&nbsp;</div></div>
+    </div>
+    <div class="eyebrow">Technique Reference</div>
+    <table class="ttable">
+      <thead>
+        <tr>
+          <th style="width:95px">ID</th>
+          <th>Technique</th>
+          <th style="width:105px">Status</th>
+          <th>ATT&amp;CK Reference</th>
+        </tr>
+      </thead>
+      <tbody>${buildRows(platform)}</tbody>
+    </table>
+    <div class="pdf-footer">${esc(CREDIT)}</div>
+  </div>`;
   }).join('');
 
-  // Open a fresh window — zero CSS conflict with the dark app theme
+  const platformsSummaryRows = selectedPlatforms.map(platform => {
+    const ids = TECHNIQUES[platform] || [];
+    const pc  = { "not-tested": 0, "in-progress": 0, "completed": 0, "out-of-scope": 0, "blocked": 0 };
+    ids.forEach(id => {
+      const raw = coverage[platform] && coverage[platform][id];
+      const s = (raw && typeof raw === 'object') ? (raw.status || 'not-tested') : (typeof raw === 'string' ? raw : 'not-tested');
+      pc[s]++;
+    });
+    const cov = ids.length - pc['not-tested'];
+    const pct = ids.length ? Math.round(cov / ids.length * 100) : 0;
+    return `<tr>
+      <td style="font-weight:700;color:#1d4ed8">${esc(platform.toUpperCase())}</td>
+      <td style="text-align:center">${ids.length}</td>
+      <td style="text-align:center">${pc['completed']}</td>
+      <td style="text-align:center">${pc['in-progress']}</td>
+      <td style="text-align:center">${pc['blocked']}</td>
+      <td style="text-align:center">${pc['out-of-scope']}</td>
+      <td style="text-align:center;font-weight:700;color:${pct >= 75 ? '#16a34a' : pct >= 40 ? '#d97706' : '#dc2626'}">${pct}%</td>
+    </tr>`;
+  }).join('');
+
   const w = window.open('', '_blank', 'width=900,height=700');
   if (!w) { showToast('Pop-up blocked — allow pop-ups and try again.'); return; }
 
@@ -2737,26 +2861,13 @@ function exportToPDF() {
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     @page { margin: 18mm 16mm; size: A4 portrait; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-      font-size: 13px; color: #111; background: #fff;
-    }
-    /* ── Page break ── */
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 13px; color: #111; background: #fff; }
     .pdf-page { padding-bottom: 32px; page-break-after: always; }
     .pdf-page:last-child { page-break-after: avoid; }
-    /* ── Header ── */
-    .hdr {
-      display: flex; justify-content: space-between; align-items: flex-end;
-      border-bottom: 3px solid #1d4ed8; padding-bottom: 12px; margin-bottom: 28px;
-    }
+    .hdr { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #1d4ed8; padding-bottom: 12px; margin-bottom: 28px; }
     .hdr-title { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; }
     .hdr-meta  { font-size: 11px; color: #6b7280; text-align: right; line-height: 1.8; }
-    /* ── Eyebrow label ── */
-    .eyebrow {
-      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
-      text-transform: uppercase; color: #9ca3af; margin-bottom: 14px;
-    }
-    /* ── Stat grid ── */
+    .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #9ca3af; margin-bottom: 14px; }
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 32px; }
     .stat-box  { border-radius: 8px; padding: 18px 20px; border: 1px solid #e5e7eb; background: #f9fafb; }
     .stat-box.blue   { border-color: #93c5fd; background: #eff6ff; }
@@ -2770,108 +2881,73 @@ function exportToPDF() {
     .stat-box.purple .stat-val { color: #7c3aed; }
     .stat-box.amber  .stat-val { color: #d97706; }
     .stat-sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
-    /* ── Detail table ── */
     .dtable { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
     .dtable td { padding: 9px 0; border-bottom: 1px solid #f3f4f6; }
     .dtable td:first-child { color: #6b7280; font-weight: 600; width: 180px; }
-    /* ── Technique table ── */
     .ttable { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .ttable th {
-      padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 700;
-      letter-spacing: 0.8px; text-transform: uppercase; color: #6b7280;
-      background: #f8fafc;
-      border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb;
-    }
+    .ttable th { padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #6b7280; background: #f8fafc; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; }
     .ttable td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     .ttable tr:nth-child(even) td { background: #fafafa; }
-    .pdf-footer {
-      margin-top: 40px; padding-top: 10px; border-top: 1px solid #e5e7eb;
-      text-align: center; font-size: 10px; color: #9ca3af; letter-spacing: 0.3px;
-    }
+    .ptable { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 8px; }
+    .ptable th { padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #6b7280; background: #f8fafc; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; }
+    .ptable td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; }
+    .pdf-footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af; letter-spacing: 0.3px; }
     @media print {
-      .stat-box.blue   { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .stat-box.green  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .stat-box.purple { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .stat-box.amber  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .stat-box.blue, .stat-box.green, .stat-box.purple, .stat-box.amber { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .ttable tr:nth-child(even) td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
 <body>
 
-  <!-- PAGE 1: SUMMARY -->
+  <!-- PAGE 1: OVERALL SUMMARY -->
   <div class="pdf-page">
     <div class="hdr">
       <div class="hdr-title">${esc(projectName)}</div>
-      <div class="hdr-meta">Platform: <strong>${esc(platformLabel)}</strong><br>Report Date: ${esc(dateStr)}</div>
+      <div class="hdr-meta">Platforms: <strong>${selectedPlatforms.map(p => esc(p.toUpperCase())).join(', ')}</strong><br>Report Date: ${esc(dateStr)}</div>
     </div>
 
-    <div class="eyebrow">Assessment Overview</div>
+    <div class="eyebrow">Overall Assessment</div>
     <div class="stat-grid">
-      <div class="stat-box blue">
-        <div class="stat-lbl">Covered Tests</div>
-        <div class="stat-val">${covered}</div>
-        <div class="stat-sub">out of ${techIds.length} total</div>
-      </div>
-      <div class="stat-box green">
-        <div class="stat-lbl">Completed</div>
-        <div class="stat-val">${counts['completed']}</div>
-        <div class="stat-sub">fully tested</div>
-      </div>
-      <div class="stat-box purple">
-        <div class="stat-lbl">Blocked</div>
-        <div class="stat-val">${counts['blocked']}</div>
-        <div class="stat-sub">could not be tested</div>
-      </div>
-      <div class="stat-box amber">
-        <div class="stat-lbl">In Progress</div>
-        <div class="stat-val">${counts['in-progress']}</div>
-        <div class="stat-sub">testing underway</div>
-      </div>
+      <div class="stat-box blue" ><div class="stat-lbl">Total Covered</div><div class="stat-val">${totalCovered}</div><div class="stat-sub">out of ${totalTechs} total</div></div>
+      <div class="stat-box green"><div class="stat-lbl">Completed</div>   <div class="stat-val">${totalCounts['completed']}</div><div class="stat-sub">fully tested</div></div>
+      <div class="stat-box purple"><div class="stat-lbl">Blocked</div>   <div class="stat-val">${totalCounts['blocked']}</div><div class="stat-sub">could not be tested</div></div>
+      <div class="stat-box amber"><div class="stat-lbl">In Progress</div><div class="stat-val">${totalCounts['in-progress']}</div><div class="stat-sub">testing underway</div></div>
     </div>
 
-    <div class="eyebrow">Details</div>
+    <div class="eyebrow">Engagement Details</div>
     <table class="dtable">
       <tr><td>Target</td><td>${esc(projectName)}</td></tr>
       <tr><td>Pentester</td><td>${pentester ? esc(pentester) : '<span style="color:#9ca3af">—</span>'}</td></tr>
-      <tr><td>Platform</td><td>${esc(platformLabel)}</td></tr>
-      <tr><td>Total Techniques</td><td>${techIds.length}</td></tr>
-      <tr><td>Not Tested</td><td>${counts['not-tested']}</td></tr>
-      <tr><td>Out of Scope</td><td>${counts['out-of-scope']}</td></tr>
+      <tr><td>Platforms Included</td><td>${selectedPlatforms.map(p => esc(p.toUpperCase())).join(', ')}</td></tr>
+      <tr><td>Total Techniques</td><td>${totalTechs}</td></tr>
+      <tr><td>Not Tested</td><td>${totalCounts['not-tested']}</td></tr>
+      <tr><td>Out of Scope</td><td>${totalCounts['out-of-scope']}</td></tr>
       <tr><td>Report Date</td><td>${esc(dateStr)}</td></tr>
     </table>
-    <div class="pdf-footer">${esc(CREDIT)}</div>
-  </div>
 
-  <!-- PAGE 2: MITRE ATT&CK TECHNIQUES -->
-  <div class="pdf-page">
-    <div class="hdr">
-      <div class="hdr-title">MITRE ATT&amp;CK Technique Coverage</div>
-      <div class="hdr-meta">Platform: <strong>${esc(platformLabel)}</strong><br>Report Date: ${esc(dateStr)}</div>
-    </div>
-
-    <div class="eyebrow">Technique Reference</div>
-    <table class="ttable">
-      <thead>
-        <tr>
-          <th style="width:95px">ID</th>
-          <th>Technique</th>
-          <th style="width:105px">Status</th>
-          <th>ATT&amp;CK Reference</th>
-        </tr>
-      </thead>
-      <tbody>${techniqueRows}</tbody>
+    <br><div class="eyebrow">Per-Platform Breakdown</div>
+    <table class="ptable">
+      <thead><tr>
+        <th>Platform</th><th style="text-align:center">Total</th>
+        <th style="text-align:center">Completed</th><th style="text-align:center">In Progress</th>
+        <th style="text-align:center">Blocked</th><th style="text-align:center">OOS</th>
+        <th style="text-align:center">Coverage</th>
+      </tr></thead>
+      <tbody>${platformsSummaryRows}</tbody>
     </table>
+
     <div class="pdf-footer">${esc(CREDIT)}</div>
   </div>
 
-  <script>
-    window.onload = function() { window.print(); };
-  <\/script>
+  ${platformSections}
+
+  <script>window.onload = function() { window.print(); };<\/script>
 </body>
 </html>`);
   w.document.close();
 }
+
 
 // ── Toast ──────────────────────────────────────────────────────────────────
 
@@ -2880,6 +2956,64 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ── Export / Import progress ────────────────────────────────────────────────
+
+function exportProgress() {
+  const payload = {
+    attck_export_version: 1,
+    exported_at: new Date().toISOString(),
+    project: getProjectName(),
+    pentester: getPentesterName(),
+    coverage: coverage
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safe = (getPentesterName() || 'unknown').replace(/[^a-z0-9_-]/gi, '_');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `attck-progress-${safe}-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Progress exported.');
+}
+
+function importAndMerge(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.attck_export_version || !data.coverage || typeof data.coverage !== 'object') {
+        showToast('Invalid progress file.'); return;
+      }
+      let merged = 0;
+      Object.entries(data.coverage).forEach(([platform, entries]) => {
+        if (!coverage[platform]) coverage[platform] = {};
+        Object.entries(entries).forEach(([id, incoming]) => {
+          if (!incoming || typeof incoming !== 'object') return;
+          const local = coverage[platform][id];
+          const localTs  = local && local.updated_at  ? new Date(local.updated_at).getTime()  : 0;
+          const incomingTs = incoming.updated_at ? new Date(incoming.updated_at).getTime() : 0;
+          if (incomingTs > localTs) {
+            coverage[platform][id] = incoming;
+            merged++;
+          }
+        });
+      });
+      saveCoverage();
+      renderGrid();
+      const who = data.pentester ? `from ${data.pentester}` : '';
+      showToast(`Merged ${merged} update(s) ${who}.`.trim());
+    } catch (_) {
+      showToast('Failed to parse progress file.');
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
@@ -2897,6 +3031,15 @@ window.onload = () => {
   // Filter pills
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+  });
+
+  // Progress export / import
+  document.getElementById('btn-export-progress').addEventListener('click', exportProgress);
+  const importInput = document.getElementById('import-progress-input');
+  document.getElementById('btn-import-progress').addEventListener('click', () => importInput.click());
+  importInput.addEventListener('change', () => {
+    importAndMerge(importInput.files[0]);
+    importInput.value = '';
   });
 
   // Export buttons

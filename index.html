@@ -39,8 +39,11 @@
       <button class="filter-btn" data-filter="out-of-scope">Out of Scope</button>
       <button class="filter-btn" data-filter="blocked">Blocked</button>
     </div>
-    <!-- Actions – EXPORT CHANGED TO SVG/PDF ONLY -->
+    <!-- Actions -->
     <div class="header-controls">
+      <button class="btn btn-progress" id="btn-export-progress" title="Export all-platform progress as JSON (share with Tech Lead)">Export Progress</button>
+      <button class="btn btn-progress" id="btn-import-progress" title="Import & merge a colleague's progress JSON">Import & Merge</button>
+      <input type="file" id="import-progress-input" accept=".json,application/json" style="display:none" />
       <button class="btn" id="btn-export-svg" title="Export current matrix as clean vector SVG">Export SVG</button>
       <button class="btn" id="btn-export-pdf" title="Export current matrix as PDF (Print → Save as PDF)">Export PDF</button>
       <button class="btn btn-danger" id="btn-reset" title="Reset all statuses for current platform">Reset</button>

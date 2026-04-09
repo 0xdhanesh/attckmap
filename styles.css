@@ -158,6 +158,8 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 .btn:hover { background: var(--border); }
 .btn-danger { border-color: #6e402a; color: #f0883e; }
 .btn-danger:hover { background: rgba(240, 136, 62, 0.1); }
+.btn-progress { border-color: #2ea043; color: #3fb950; }
+.btn-progress:hover { background: rgba(63, 185, 80, 0.1); border-color: #3fb950; }
 main { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .stat-chip { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; }
@@ -178,13 +180,13 @@ main { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .progress-segment.seg-blocked { background: #8957e5; }
 .progress-segment.seg-out-of-scope { background: #6e402a; }
 .technique-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; }
-.technique-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s, transform 0.1s; cursor: default; }
+.technique-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s, transform 0.1s; cursor: default; overflow: hidden; }
 .technique-card:hover { border-color: #484f58; transform: translateY(-1px); }
 .technique-card.status-in-progress { background: var(--status-in-progress); border-color: var(--status-in-progress-border); }
 .technique-card.status-completed { background: var(--status-completed); border-color: var(--status-completed-border); }
 .technique-card.status-out-of-scope { background: var(--status-out-of-scope); border-color: var(--status-out-of-scope-border); opacity: 0.6; }
 .technique-card.status-blocked { background: var(--status-blocked); border-color: var(--status-blocked-border); }
-.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
 .technique-id { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(56, 139, 253, 0.1); border: 1px solid rgba(56, 139, 253, 0.2); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
 
 /* Category chip — shown in card header */
