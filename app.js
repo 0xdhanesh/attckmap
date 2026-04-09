@@ -2203,7 +2203,7 @@ function populatePlatformSelect() {
   Object.keys(TECHNIQUES).forEach(platform => {
     const opt = document.createElement('option');
     opt.value = platform;
-    opt.textContent = platform.charAt(0).toUpperCase() + platform.slice(1);
+    opt.textContent = platform.toUpperCase();
     if (platform === currentPlatform) opt.selected = true;
     select.appendChild(opt);
   });

@@ -228,6 +228,19 @@ main { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .toast.show { opacity: 1; transform: translateY(0); }
 /* Print: PDF export opens its own window — no print styles needed in the app */
 
+/* ── Mobile responsive ── */
+@media (max-width: 640px) {
+  header { padding: 12px 14px; gap: 10px; }
+  main { padding: 12px; }
+  .technique-grid { grid-template-columns: 1fr; }
+  .card-header { flex-wrap: wrap; }
+  .status-badge { flex-shrink: 0; }
+  .category-tag { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .header-controls { gap: 6px; }
+  .btn { padding: 6px 10px; font-size: 11px; }
+  .filter-bar { gap: 6px; }
+}
+
 /* ── App footer ribbon ── */
 .app-footer {
   display: flex;
