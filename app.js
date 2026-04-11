@@ -14,6 +14,8 @@
 //   category    {string}  Groups cards under a section header (e.g. "DLL Attacks")
 //   mitre_ref   {string}  Parent MITRE ID — shown as "↗ Variant of T1574.001"
 //   custom      {bool}    true = no MITRE mapping; shows orange "Custom · Non-MITRE" badge
+//   methods     {string[]}  Methodology steps shown under "Methodologies" dropdown on the card
+//                           e.g. methods: ["Step 1: Enumerate targets", "Step 2: Run tool X"]
 //
 // ID conventions:
 //   Standard MITRE  →  T1574.001, T1112   (MITRE link auto-generated)
@@ -33,7 +35,13 @@ const ATTACK_DB = {
   "test_note": "• [RECON] Run Detect It Easy (die binary.exe) to identify compiler, linker, and framework; CFF Explorer shows PE headers and .NET metadata; file binary (WSL) or TrID to confirm format.\n• [Exploit] Framework determines attack toolchain: .NET → dnSpy for full C# decompilation; Java → jadx/JD-GUI; C++ → Ghidra/IDA; Electron → extract app.asar: npx asar extract app.asar ./src → full Node.js source visible.\n• [Client-Side Check] Verify application is compiled to native code where possible; .NET binaries should use obfuscation (ConfuserEx); Electron apps should encrypt their asar archive; no debug symbols shipped in production.\n• [Exploit if missing] If .NET binary unobfuscated: dnSpy decompiles entire application to near-identical C# in seconds → all business logic, auth bypass conditions, and hardcoded secrets immediately visible → wrong tool wastes engagement time.",
   "category": "1_RECON",
   "platform": "windows",
-  "custom": true
+  "custom": true,
+  "methods": [
+    "1. Run Detect It Easy (die binary.exe) to identify framework",
+    "2. Use CFF Explorer to inspect PE headers and .NET metadata",
+    "3. Confirm format with file binary (WSL) or TrID",
+    "4. Choose decompiler based on framework: .NET → dnSpy, Java → jadx, C++ → Ghidra"
+  ]
 },
 "RECON-2": {
   "name": "Binary Protections Check",
@@ -2647,6 +2655,14 @@ function getCardHTML(id) {
     refHtml = `<span class="mitre-ref-tag">↗ ${esc(tech.mitre_ref)}</span>`;
   }
 
+  // Methodologies dropdown — always rendered so every card shows the toggle
+  const methodItems = (tech.methods && tech.methods.length > 0)
+    ? tech.methods.map(m => `<li class="methods-item">${esc(m)}</li>`).join('')
+    : `<li class="methods-item methods-empty">No methodologies defined for this technique.</li>`;
+  const methodsHtml = `
+    <button class="methods-toggle" data-id="${esc(id)}">Methodologies ▾</button>
+    <ul class="methods-list" data-id="${esc(id)}" hidden>${methodItems}</ul>`;
+
   return `
     <div class="technique-card status-${status}" data-id="${esc(id)}">
       <div class="card-header">
@@ -2658,6 +2674,7 @@ function getCardHTML(id) {
       ${refHtml}
       <div class="technique-desc">${esc(tech.description)}</div>
       <div class="test-note">${esc(tech.test_note)}</div>
+      ${methodsHtml}
       <div class="card-footer">
         <button class="status-btn" data-status="not-tested">Not Tested</button>
         <button class="status-btn" data-status="in-progress">In Progress</button>
@@ -2741,6 +2758,16 @@ function renderGrid() {
       setEntry(id, { status: btn.dataset.status });
       renderGrid();
       updateStatsAndProgress();
+    });
+  });
+
+  // Methodologies toggle listeners
+  grid.querySelectorAll('.methods-toggle').forEach(toggle => {
+    const id = toggle.dataset.id;
+    const list = grid.querySelector(`.methods-list[data-id="${id}"]`);
+    toggle.addEventListener('click', () => {
+      list.hidden = !list.hidden;
+      toggle.textContent = list.hidden ? 'Methodologies ▾' : 'Methodologies ▴';
     });
   });
 

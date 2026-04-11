@@ -219,6 +219,12 @@ main { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .status-btn[data-status="completed"].active-btn { border-color: var(--status-completed-border); color: var(--status-completed-text); background: rgba(35, 134, 54, 0.1); }
 .status-btn[data-status="out-of-scope"].active-btn { border-color: var(--status-out-of-scope-border); color: var(--status-out-of-scope-text); background: rgba(110, 64, 42, 0.1); }
 .status-btn[data-status="blocked"].active-btn { border-color: var(--status-blocked-border); color: var(--status-blocked-text); background: rgba(137, 87, 229, 0.1); }
+.methods-toggle { background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 600; cursor: pointer; padding: 0; margin-top: 6px; display: block; }
+.methods-toggle:hover { opacity: 0.8; }
+.methods-list { margin: 4px 0 0 0; padding: 0; list-style: none; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.methods-item { font-size: 11px; color: var(--text-muted); padding: 5px 8px; border-bottom: 1px solid var(--border); line-height: 1.5; }
+.methods-item:last-child { border-bottom: none; }
+.methods-empty { font-style: italic; opacity: 0.5; }
 .notes-toggle { background: none; border: none; color: var(--text-muted); font-size: 11px; cursor: pointer; padding: 0; text-decoration: underline dotted; margin-top: 2px; }
 .notes-toggle:hover { color: var(--text); }
 .notes-area { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 11px; font-family: inherit; padding: 6px 8px; resize: vertical; min-height: 56px; margin-top: 4px; }
